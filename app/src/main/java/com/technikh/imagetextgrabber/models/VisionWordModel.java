@@ -1,4 +1,4 @@
-package com.technikh.imagetextgrabber;
+package com.technikh.imagetextgrabber.models;
 
 /*
  * Copyright (c) 2019. Nikhil Dubbaka from TechNikh.com under GNU AFFERO GENERAL PUBLIC LICENSE

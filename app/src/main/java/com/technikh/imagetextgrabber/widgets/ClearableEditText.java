@@ -1,4 +1,4 @@
-package com.technikh.imagetextgrabber;
+package com.technikh.imagetextgrabber.widgets;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -7,6 +7,8 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+
+import com.technikh.imagetextgrabber.R;
 
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.core.content.ContextCompat;

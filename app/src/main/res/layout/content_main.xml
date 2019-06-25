@@ -11,7 +11,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="bottom"
-    sothree:umanoPanelHeight="68dp"
+    sothree:umanoPanelHeight="88dp"
     sothree:umanoShadowHeight="4dp">
 
     <RelativeLayout
@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <com.technikh.imagetextgrabber.TouchImageView
+            <com.technikh.imagetextgrabber.widgets.TouchImageView
                 android:id="@+id/ivImage"
                 android:textIsSelectable="true"
                 android:layout_width="match_parent"
@@ -58,19 +58,30 @@
         android:focusable="false"
         android:orientation="vertical">
 
+        <com.technikh.imagetextgrabber.widgets.MultiSelectSpinnerWidget
+            android:id="@+id/spinner_options"
+            style="@style/Base.Widget.AppCompat.Spinner.Underlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center" />
+        <!-- <io.apptik.widget.multiselectspinner.MultiSelectSpinner
+            android:id="@+id/spinner_options"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            />  -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1">
 
-            <com.technikh.imagetextgrabber.ClearableEditText
+            <com.technikh.imagetextgrabber.widgets.ClearableEditText
                 android:id="@+id/et_image_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="top|left"
                 android:hint="Selected text from Image"
                 android:inputType="textMultiLine"
-                android:selectAllOnFocus="true"
                 android:lines="8"
                 android:maxLines="10"
                 android:minLines="6"

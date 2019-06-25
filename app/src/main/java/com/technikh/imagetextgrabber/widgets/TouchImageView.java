@@ -1,4 +1,4 @@
-package com.technikh.imagetextgrabber;
+package com.technikh.imagetextgrabber.widgets;
 
 /*
  * Copyright (c) 2019. Nikhil Dubbaka from TechNikh.com under GNU AFFERO GENERAL PUBLIC LICENSE
@@ -6,30 +6,23 @@ package com.technikh.imagetextgrabber;
  * When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
  */
 
-import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
-import android.os.Bundle;
-import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -37,19 +30,16 @@ import android.util.SparseArray;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
-import android.widget.OverScroller;
 import android.widget.RelativeLayout;
-import android.widget.Scroller;
 import android.widget.Toast;
 
 import com.bogdwellers.pinchtozoom.ImageMatrixTouchHandler;
 import com.bogdwellers.pinchtozoom.ImageViewerCorrector;
+import com.bogdwellers.pinchtozoom.MultiTouchListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -57,17 +47,13 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+import com.technikh.imagetextgrabber.models.ImageViewSettingsModel;
+import com.technikh.imagetextgrabber.models.VisionWordModel;
 
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -76,14 +62,14 @@ import java.util.stream.Collectors;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
-import androidx.core.content.ContextCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
 
 public class TouchImageView extends AppCompatImageView {
 
     private static final String TAG = "TouchImageView";
-    static final boolean debugMode = false, experimentalFeatures = false;
+    static boolean debugMode = false, experimentalFeatures = false, snapToWord = false, allowZoom = false, showMargins = false, allWordBorders = false, toggleWordOnClick = false;
     private Context mContext;
+    private ImageMatrixTouchHandler imageMatrixTouchHandler;
+    private MultiTouchListener multiTouchListener;
 
     private boolean textSelectionInProgress = false;
     private PointF startCursorPoint = new PointF(0,0);
@@ -99,6 +85,7 @@ public class TouchImageView extends AppCompatImageView {
     int zoomedOffsetX, zoomedOffsetY;
 
     private List<VisionWordModel> visionTextRectanglesSimplified = new ArrayList<>();
+    private int minWordHeight = 1000;
     private List<VisionWordModel> zoomedVisionTextRectangles = new ArrayList<>();
     private List<VisionWordModel> selectedVisionTextRectanglesSimplified = new ArrayList<>();
     //Map<Rect, String> visionTextRectangles = new HashMap<Rect, String>();
@@ -145,6 +132,42 @@ public class TouchImageView extends AppCompatImageView {
         Log.d(TAG, "resetOCR: 1");
         unChangedOriginalBitmap = null;
         onImageChangeInImageView();
+    }
+
+    public void initOptions (ImageViewSettingsModel imageViewSettingsModel){
+        if(imageViewSettingsModel.isZoomAllowed()){
+            allowZoom = true;
+            //TouchImageView.super.setOnTouchListener(imageMatrixTouchHandler);
+            imageMatrixTouchHandler.setScaleEnabled(true);
+            imageMatrixTouchHandler.setDragOnPinchEnabled(true);
+            imageMatrixTouchHandler.setTranslateEnabled(true);
+        }else{
+            allowZoom = false;
+            //TouchImageView.super.setOnTouchListener(multiTouchListener);
+            imageMatrixTouchHandler.setScaleEnabled(false);
+            imageMatrixTouchHandler.setDragOnPinchEnabled(false);
+            imageMatrixTouchHandler.setTranslateEnabled(false);
+        }
+        if(imageViewSettingsModel.isSnaptoWordMode()){
+            snapToWord = true;
+        }else{
+            snapToWord = false;
+        }
+        if(imageViewSettingsModel.isMarginsEnabled()){
+            showMargins = true;
+        }else{
+            showMargins = false;
+        }
+        if(imageViewSettingsModel.isAllWordBordersEnabled()){
+            allWordBorders = true;
+        }else{
+            allWordBorders = false;
+        }
+        if(imageViewSettingsModel.isToggleWordEnabled()){
+            toggleWordOnClick = true;
+        }else{
+            toggleWordOnClick = false;
+        }
     }
 
     public void initCursors (ImageView ivStartCursor, ImageView ivEndCursor) {
@@ -220,12 +243,12 @@ public class TouchImageView extends AppCompatImageView {
 
             @Override
             public boolean onPreDraw() {
-                Log.d(TAG, "onPreDraw: ");
+                //Log.d(TAG, "onPreDraw: ");
                 try {
                     if(unChangedOriginalBitmap == null && TouchImageView.super.getDrawable() != null) {
                         unChangedOriginalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
                         final Bitmap originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
-                        Log.d(TAG, "onPreDraw: unChangedOriginalBitmap");
+                        //Log.d(TAG, "onPreDraw: unChangedOriginalBitmap");
                         loriginalImageWidth = originalBitmap.getWidth();
                         loriginalImageHeight = originalBitmap.getHeight();
 
@@ -262,6 +285,9 @@ public class TouchImageView extends AppCompatImageView {
                                                                 //visionTextRectangles.put(boundingRect, tElement.getText());
                                                                 VisionWordModel visionWordModel = new VisionWordModel(boundingRect, tElement.getText());
                                                                 visionTextRectanglesSimplified.add(visionWordModel);
+                                                                if(boundingRect.height() < minWordHeight){
+                                                                    minWordHeight = boundingRect.height();
+                                                                }
 /*
                                                                     Canvas canvas = new Canvas(originalBitmap);
                                                                     // Initialize a new Paint instance to draw the Rectangle
@@ -281,8 +307,14 @@ public class TouchImageView extends AppCompatImageView {
                                                     Collections.sort(visionTextRectanglesSimplified, new Comparator<VisionWordModel>() {
                                                         @Override
                                                         public int compare(VisionWordModel p1, VisionWordModel p2) {
-                                                            // Ascending
-                                                            int c = Double.compare(p1.mrect.top, p2.mrect.top);
+                                                            // Ascending first left as same line words can have top +/- 5
+                                                            int threshold = minWordHeight;
+                                                            int c = 0;
+                                                            if((p1.mrect.top < p2.mrect.top + threshold) && (p1.mrect.top < p2.mrect.top - threshold)){
+                                                                c = -1;
+                                                            }else if((p1.mrect.top > p2.mrect.top + threshold) && (p1.mrect.top > p2.mrect.top - threshold)){
+                                                                c = 1;
+                                                            }
                                                             if (c == 0)
                                                                 c = Double.compare(p1.mrect.left, p2.mrect.left);
                                                             return c;
@@ -312,6 +344,14 @@ public class TouchImageView extends AppCompatImageView {
                 return true;    //note, that "true" is important, since you don't want drawing pass to be canceled
             }
         });
+    }
+
+    private boolean isLongClick(MotionEvent event1, boolean cancelZoomNav) {
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
+            return (event1.getAction() == MotionEvent.ACTION_DOWN);
+        }else{
+            return (event1.getAction() == MotionEvent.ACTION_MOVE) && !cancelZoomNav;
+        }
     }
 
     private void sharedConstructing(Context context) {
@@ -345,8 +385,10 @@ public class TouchImageView extends AppCompatImageView {
               //  Log.d(TAG, "aqa updateScaledImageDimensions: getScaledImageWidth " + getScaledImageWidth());
             }
         };
+        multiTouchListener = new MultiTouchListener() {
 
-        ImageMatrixTouchHandler imageMatrixTouchHandler = new ImageMatrixTouchHandler(mContext, corrector) {
+        };
+        imageMatrixTouchHandler = new ImageMatrixTouchHandler(mContext, corrector) {
             private int mode;
             private boolean updateTouchState = true;
             private boolean cancelZoomNav = false, startCursorMode = false, endCursorMode = false, leftRulerPointMode = false, rightRulerPointMode = false;
@@ -370,7 +412,7 @@ public class TouchImageView extends AppCompatImageView {
                 return lPoint;
             }
 
-            private boolean checkTouchPoint(PointF lPoint, float touchX, float touchY){
+            private boolean checkTouchPoint(PointF lPoint, float touchX, float touchY, int xOffset, int yOffset){
                 int thresholdRadius = 20;
 
                 float zoomedTouchX = zoomedOffsetX+(int)(touchX/widthZoomFactor);
@@ -381,7 +423,7 @@ public class TouchImageView extends AppCompatImageView {
                 if(widthZoomFactor <= 1){
                     zoomedTouchX = touchX - zoomedOffsetX;
                 }
-                if(zoomedTouchX >= lPoint.x - thresholdRadius && zoomedTouchX <= lPoint.x + thresholdRadius && zoomedTouchY >= lPoint.y - thresholdRadius && zoomedTouchY <= lPoint.y + thresholdRadius){
+                if(zoomedTouchX >= lPoint.x + xOffset - thresholdRadius && zoomedTouchX <= lPoint.x + xOffset + thresholdRadius && zoomedTouchY >= lPoint.y + yOffset - thresholdRadius && zoomedTouchY <= lPoint.y + yOffset + thresholdRadius){
                     return true;
                 }
                // Log.d(TAG, "checkTouchPoint: not match zoomedTouchX "+ zoomedTouchX +" zoomedTouchY "+zoomedTouchY + " lPoint "+lPoint.toString());
@@ -425,7 +467,7 @@ public class TouchImageView extends AppCompatImageView {
                 }*/
                 switch (actionMasked) {
                     case MotionEvent.ACTION_UP:
-                       // Log.d(TAG, "onTouch: ACTION_UP mode "+mode);
+                        //Log.d(TAG, "onTouch: ACTION_UP mode "+mode);
                         if (mode == DRAG) {
                             cancelZoomNav = false;
                             startCursorMode = false;
@@ -437,8 +479,10 @@ public class TouchImageView extends AppCompatImageView {
                                 // Zoomed area is depending on aspect ratio of the image and device - portrait or landscape
                                 if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
                                     zoomedVisionTextRectangles = visionTextRectanglesSimplified.stream().filter(filteredVisionWord -> (isWordWithinVisibleArea(filteredVisionWord))).collect(Collectors.toList());
+                                    //Log.d(TAG, "rdfer onTouch: zoomedVisionTextRectangles = visionTextRectanglesSimplified.stream()");
                                 }
                             }else{
+                                //Log.d(TAG, "rdfer onTouch: zoomedVisionTextRectangles = visionTextRectanglesSimplified ");
                                 zoomedVisionTextRectangles = visionTextRectanglesSimplified;
                             }
                             /*//Paint zoomedarea rectangle
@@ -525,18 +569,18 @@ public class TouchImageView extends AppCompatImageView {
                             }
 
                             //Log.d(TAG, "ter onTouch: startPoints "+startPoints.toString());
-                            if(checkTouchPoint(startCursorPoint, event.getX(), event.getY())){
+                            if(checkTouchPoint(startCursorPoint, event.getX(), event.getY(), -20, -20)){
                                // Log.d(TAG, "ter onTouch: match startCursorPoint");
                                 cancelZoomNav = true;
                                 startCursorMode = true;
-                            }else if(checkTouchPoint(endCursorPoint, event.getX(), event.getY())){
+                            }else if(checkTouchPoint(endCursorPoint, event.getX(), event.getY(), 20, 20)){
                                 cancelZoomNav = true;
                                 endCursorMode = true;
-                            }else if(checkTouchPoint(leftMarginRulerPoint, event.getX(), event.getY())){
+                            }else if(checkTouchPoint(leftMarginRulerPoint, event.getX(), event.getY(), 0,0)){
                               //  Log.d(TAG, "ter onTouch: match startCursorPoint");
                                 cancelZoomNav = true;
                                 leftRulerPointMode = true;
-                            }else if(checkTouchPoint(rightMarginRulerPoint, event.getX(), event.getY())){
+                            }else if(checkTouchPoint(rightMarginRulerPoint, event.getX(), event.getY(), 0,0)){
                                 cancelZoomNav = true;
                                 rightRulerPointMode = true;
                             }else{
@@ -610,8 +654,9 @@ public class TouchImageView extends AppCompatImageView {
                         final int touchX = (int) e.getX();
                         final int touchY = (int) e.getY();
 
-                      //  Log.d(TAG, "ghy onTouch: GestureDetector e.getAction() " + e.getAction());
-                        if ((e.getAction() == MotionEvent.ACTION_DOWN) && (event.getAction() == MotionEvent.ACTION_MOVE)) {
+                        //Log.d(TAG, "ghy onTouch: GestureDetector e.getAction() " + e.getAction());
+                        //Log.d(TAG, "ghy onTouch: GestureDetector event1.getAction() " + event1.getAction());
+                        if ((e.getAction() == MotionEvent.ACTION_DOWN) && (false && event.getAction() == MotionEvent.ACTION_MOVE)) {
                             //TODO: show selected text cursor while navigating or zooming the image
                          //   Log.d(TAG, "ghy onTouch: ACTION_DOWN GestureDetector event.getAction() " + event.getAction());
 /*
@@ -630,12 +675,13 @@ public class TouchImageView extends AppCompatImageView {
                       //  Log.d(TAG, "wqw onTouch:  getRawX X: " + e.getRawX() + " Y: " + e.getRawY() + " event X: " + event1.getRawX() + " Y: " + event1.getRawY());
                         //Log.e(TAG, "Longpress detected event "+event.getAction()+" e "+e.getAction());
                         if (event1.getAction() == MotionEvent.ACTION_UP) {
-                            if(experimentalFeatures) {
+                            if(toggleWordOnClick) {
                                 selectWordOnTouch(touchX, touchY, false);
                             }
-                        } else if (event1.getAction() == MotionEvent.ACTION_DOWN) {
-                            //  Log.d(TAG, "onLongPress: real detected X: " + e.getX() + " Y: " + e.getY() + " event X: " + event.getX() + " Y: " + event.getY() + " raw Y" + event.getRawY());
-                            Toast.makeText(mContext, "Long Clicked ", Toast.LENGTH_SHORT).show();
+                        } else if (isLongClick(event1, cancelZoomNav)) {
+                            // For Android 4.2.2 API 17, Samsung tablet, detecting long press event1.getAction() == MotionEvent.ACTION_MOVE
+                           // Log.d(TAG, "onLongPress: real detected X: " + e.getX() + " Y: " + e.getY() + " event X: " + event.getX() + " Y: " + event.getY() + " raw Y" + event.getRawY());
+                            //Toast.makeText(mContext, "Long Clicked ", Toast.LENGTH_SHORT).show();
                             updateTouchState = true;
 
                             final Bitmap originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
@@ -644,7 +690,7 @@ public class TouchImageView extends AppCompatImageView {
                             //selectedVisionText.clear();
                             //selectedVisionTextRectangles.clear();
                             selectedVisionTextRectanglesSimplified.clear();
-                            if(debugMode || experimentalFeatures) {
+                            if(debugMode || allWordBorders) {
                                 //Iterator it = visionTextRectangles.entrySet().iterator();
 
                                 //selectedVisionTextRectangles.clear();
@@ -683,7 +729,9 @@ public class TouchImageView extends AppCompatImageView {
                     try {
                         super.onTouch(view, event);
                     }catch (Exception e){
+                        TouchImageView.super.setImageBitmap(unChangedOriginalBitmap);
                         e.printStackTrace();
+                        return false;
                     }
                 }
                 return true; // indicate event was handled
@@ -716,6 +764,23 @@ public class TouchImageView extends AppCompatImageView {
         return zoomedAreaRect.contains(filteredVisionWord.mrect);
     }
 
+    private boolean isWordExactlyBetweenMarginsAndCursors(Rect rect, RectF innerMarginAreaRect, RectF innerCursorAreaRect, float startX, float startY, float endX, float endY) {
+        boolean innerMarginAreaRectStatus = true;
+        if(showMargins){
+            innerMarginAreaRectStatus = innerMarginAreaRect.contains(rect.left, rect.top);
+        }
+        if(!innerCursorAreaRect.isEmpty()) {
+            if (innerMarginAreaRectStatus && (((rect.top < innerCursorAreaRect.top && rect.top >= startY && (rect.right >= startX || rect.left >= startX)) || (rect.top > innerCursorAreaRect.top && rect.bottom <= endY && (rect.left <= endX || rect.right <= endX))) || innerCursorAreaRect.contains(rect.left, rect.top))) {
+                return true;
+            }
+        }else{
+            if (innerMarginAreaRectStatus && ((rect.left >= startX && rect.top >= startY && rect.top <= endY) && (rect.left <= endX && rect.bottom >= startY && rect.bottom <= endY))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 
     private void selectWordInBetweenCursors(PointF mstartCursorPoint, PointF mendCursorPoint, PointF mleftMarginPoint, PointF mrightMarginPoint) {
@@ -723,8 +788,8 @@ public class TouchImageView extends AppCompatImageView {
         boolean changeStartCursorPoint = true, changeEndCursorPoint = true, changeLeftMarginPoint = true, changeRightMarginPoint = true;
         textSelectionInProgress = true;
         //List<PointF> allWordStartPoints = new ArrayList<>();
-        List<Float> allWordTopPositions = new ArrayList<>();
-        List<Float> allWordBottomPositions = new ArrayList<>();
+        List<Integer> allWordTopPositions = new ArrayList<>();
+        List<Integer> allWordBottomPositions = new ArrayList<>();
         //List<Float> allWordTopPositionsUnique = new ArrayList<>();
         //List<PointF> allWordEndPoints = new ArrayList<>();
         if(mstartCursorPoint == null){
@@ -797,50 +862,94 @@ public class TouchImageView extends AppCompatImageView {
             }
             filteredVisionWordList = zoomedVisionTextRectangles.stream().filter(filteredVisionWord -> (isWordBetweenCursors(filteredVisionWord, fstartCursorPoint, fendCursorPoint, innerMarginAreaRect.left, innerMarginAreaRect.right))).collect(Collectors.toList());
         }
+        if(allWordBorders){
+            // draw Yellow Word border
+            Paint paint = new Paint();
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(2);
+            paint.setPathEffect(new DashPathEffect(new float[]{2, 2}, 0));
+            paint.setColor(Color.YELLOW);
+            paint.setAntiAlias(true);
+            for (VisionWordModel visionWordModel : zoomedVisionTextRectangles) {
+                Rect rect = visionWordModel.mrect;
+                canvas.drawRect(rect, paint);
+            }
+        }
         //Iterator it = visionTextRectangles.entrySet().iterator();
 
         //selectedVisionTextRectangles.clear();
         //selectedVisionText.clear();
         // TODO: get selected text, top word line & bottom word line for innerCursorAreaRect
-        /*List<VisionWordModel> filteredVisionWordListUnique = new ArrayList<>();
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
+        List<VisionWordModel> filteredVisionWordListUnique = new ArrayList<>();
+        RectF innerCursorAreaRect = new RectF(0,0,0,0);
+        /*if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
             filteredVisionWordListUnique = filteredVisionWordList.stream()
                     .distinct()
                     .filter(distinctByKey(VisionWordModel::getTop))
                     .collect(Collectors.toList());
-        }*/
-        for (VisionWordModel visionWordModel : filteredVisionWordList) {
-            Rect rect = visionWordModel.mrect;
-            if (rect.top >= startY && rect.top <= endY) {
-                if(!allWordTopPositions.contains(Float.valueOf(rect.top))) {
-                    allWordTopPositions.add(Float.valueOf(rect.top));
+            for (VisionWordModel visionWordModel1 : filteredVisionWordListUnique) {
+                Log.d(TAG, endY+" selectWordInBetweenCursors: visionWordModel1 mtext "+visionWordModel1.mtext+"mrect "+visionWordModel1.mrect.toShortString());
+            }
+            if(filteredVisionWordListUnique.size() >= 2) {
+                innerCursorAreaRect.left = 0;
+                innerCursorAreaRect.right = loriginalImageWidth;
+                if(filteredVisionWordListUnique.size() == 2){
+                    innerCursorAreaRect.top = filteredVisionWordListUnique.get(0).getBottom();
+                    innerCursorAreaRect.bottom = filteredVisionWordListUnique.get(1).getTop();
+                }else {
+                    innerCursorAreaRect.top = filteredVisionWordListUnique.get(1).getTop();
+                    innerCursorAreaRect.bottom = filteredVisionWordListUnique.get(filteredVisionWordListUnique.size() - 2).getBottom();
                 }
-                if(!allWordBottomPositions.contains(Float.valueOf(rect.bottom))) {
-                    allWordBottomPositions.add(Float.valueOf(rect.bottom));
+                Log.d(TAG, "zfew selectWordInBetweenCursors: innerCursorAreaRect "+innerCursorAreaRect.toShortString()+" startY "+startY + " endY "+endY+" filteredVisionWordListUnique.get(0).getTop() "+filteredVisionWordListUnique.get(0).getTop()+" filteredVisionWordListUnique.get(filteredVisionWordListUnique.size() - 1).getBottom() "+filteredVisionWordListUnique.get(filteredVisionWordListUnique.size() - 1).getBottom());
+            }else if(filteredVisionWordListUnique.size() == 1) {
+                //innerCursorAreaRect = new RectF(startX,startY,endX,endY);
+                //Log.d(TAG, "zfew selectWordInBetweenCursors: filteredVisionWordListUnique.size()"+filteredVisionWordListUnique.size());
+            }
+        }else {*/
+            for (VisionWordModel visionWordModel : filteredVisionWordList) {
+                Rect rect = visionWordModel.mrect;
+                if (rect.top >= startY && rect.bottom <= endY) {
+                    // Sometimes OCR detects word in same line as different rect.bottom +/- 2
+                    if (!checkSameLineWords(allWordTopPositions, rect.top)) {
+                        allWordTopPositions.add(rect.top);
+                    }
+                    if (!checkSameLineWords(allWordBottomPositions, rect.bottom)) {
+                       // Log.d(TAG, "selectWordInBetweenCursors: rect.bottom "+Float.valueOf(rect.bottom)+" allWordBottomPositions "+allWordBottomPositions.toString());
+                        allWordBottomPositions.add(rect.bottom);
+                    }
                 }
             }
-        }
-        Collections.sort(allWordTopPositions, new Comparator<Float>() {
-            @Override
-            public int compare(Float o1, Float o2) {
-                return Float.compare(o1, o2);
+            Collections.sort(allWordTopPositions, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    return Integer.compare(o1, o2);
+                }
+            });
+            Collections.sort(allWordBottomPositions, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    return Integer.compare(o1, o2);
+                }
+            });
+            Collections.reverse(allWordBottomPositions);
+       // Log.d(TAG, "aweds selectWordInBetweenCursors: allWordBottomPositions"+allWordBottomPositions.toString());
+            if(allWordTopPositions.size() >= 2 && allWordBottomPositions.size() >= 2) {
+                innerCursorAreaRect.left = 0;
+                innerCursorAreaRect.right = loriginalImageWidth;
+                if(allWordTopPositions.size() == 2){
+                    innerCursorAreaRect.top = allWordBottomPositions.get(1);
+                    innerCursorAreaRect.bottom = allWordTopPositions.get(1);
+                }else {
+                    innerCursorAreaRect.top = allWordTopPositions.get(1);
+                    innerCursorAreaRect.bottom = allWordBottomPositions.get(1);
+                }
+            }else{
+              //  Log.d(TAG, "zfew selectWordInBetweenCursors: innerCursorAreaRect "+innerCursorAreaRect.toShortString());
+              //  Log.d(TAG, "zfew selectWordInBetweenCursors: allWordTopPositions.size()  "+allWordTopPositions.size() +" allWordBottomPositions.size() "+allWordBottomPositions.size() );
             }
-        });
-        Collections.sort(allWordBottomPositions, new Comparator<Float>() {
-            @Override
-            public int compare(Float o1, Float o2) {
-                return Float.compare(o1, o2);
-            }
-        });
-        Collections.reverse(allWordBottomPositions);
+        //Log.d(TAG, "aweds selectWordInBetweenCursors: innerCursorAreaRect "+innerCursorAreaRect.toShortString());
+        // }
         selectedVisionTextRectanglesSimplified.clear();
-        RectF innerCursorAreaRect = new RectF(0,0,0,0);
-        if(allWordTopPositions.size() >= 2 && allWordBottomPositions.size() >= 2) {
-            innerCursorAreaRect.left = 0;
-            innerCursorAreaRect.top = allWordTopPositions.get(1);
-            innerCursorAreaRect.right = loriginalImageWidth;
-            innerCursorAreaRect.bottom = allWordBottomPositions.get(1);
-        }
         for (VisionWordModel visionWordModel : filteredVisionWordList) {
             //while (it.hasNext()) {
             //Map.Entry pair = (Map.Entry) it.next();
@@ -869,7 +978,7 @@ public class TouchImageView extends AppCompatImageView {
             words to the right of startX: rect.top < innerCursorAreaRect.top && rect.top >= startY && rect.left >= startX
             words to the left of endX: rect.top > innerCursorAreaRect.top && rect.left <= endX
              */
-            if (innerMarginAreaRect.contains(rect.left, rect.top) && (((rect.top < innerCursorAreaRect.top && rect.top >= startY && (rect.right >= startX || rect.left >= startX))||(rect.top > innerCursorAreaRect.top && rect.top <= endY && (rect.left <= endX || rect.right <= endX))) || innerCursorAreaRect.contains(rect.left, rect.top))) {
+            if (isWordExactlyBetweenMarginsAndCursors(rect, innerMarginAreaRect, innerCursorAreaRect, startX, startY, endX, endY)){
                 // Add red
                 //if(!selectedVisionTextRectangles.contains(rect)) {
                     //Log.d(TAG, "red selectWordInBetweenCursors: pair.getValue().toString() " + pair.getValue().toString() + " rect " + rect.toShortString());
@@ -887,34 +996,12 @@ public class TouchImageView extends AppCompatImageView {
                     paint.setColor(Color.RED);
                     paint.setAntiAlias(true);
 
-                    canvas.drawBitmap(originalBitmap, 0, 0, paint);
+                    //canvas.drawBitmap(originalBitmap, 0, 0, paint);
                     //canvas.drawText("Testing...", 10, 10, paint);
                     canvas.drawRect(rect, paint);
                 selectedVisionTextRectanglesSimplified.add(visionWordModel);
                // }
-            }else{
-                //Log.d(TAG, "cfde selectWordInBetweenCursors: text "+visionWordModel.mtext+" rect "+rect.toShortString());
-                //Log.d(TAG, "cfde selectWordInBetweenCursors: innerMarginAreaRect "+innerMarginAreaRect.toShortString()+ " innerCursorAreaRect "+innerCursorAreaRect.toShortString());
             }
-            /*else if(false){
-                // Remove - draw Yellow
-                //Log.d(TAG, "yellow selectWordInBetweenCursors: pair.getValue().toString() "+pair.getValue().toString()+" rect "+rect.toShortString());
-                int pos = selectedVisionTextRectangles.indexOf(rect);
-                if(pos >= 0) {
-                    //Log.d(TAG, "already clicked rectangle: " + pair.getValue() + " rect: " + rect.toShortString());
-                    selectedVisionTextRectangles.remove(rect);
-                    //selectedVisionText.remove(pos);
-                    Paint paint = new Paint();
-                    paint.setStyle(Paint.Style.STROKE);
-                    paint.setStrokeWidth(2);
-                    paint.setPathEffect(new DashPathEffect(new float[]{2, 2}, 0));
-                    paint.setColor(Color.YELLOW);
-                    paint.setAntiAlias(true);
-
-                    canvas.drawBitmap(originalBitmap, 0, 0, paint);
-                    canvas.drawRect(rect, paint);
-                }
-            }*/
         }
         //List<Rect> justRect = new ArrayList<>(lselectedVisionTextRectangles.keySet());
         /*Collections.sort(selectedVisionTextRectanglesSimplified, new Comparator<VisionWordModel>() {
@@ -933,6 +1020,10 @@ public class TouchImageView extends AppCompatImageView {
                     selectedVisionTextRectanglesSimplified.stream()
                             .map(VisionWordModel::getText)
                             .collect(Collectors.toList());
+        }else{
+            for (VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
+                selectedVisionText.add(visionWordModel.mtext);
+            }
         }
         /*for (Rect rect : justRect) {
             selectedVisionText.add(lselectedVisionTextRectangles.get(rect));
@@ -976,7 +1067,7 @@ public class TouchImageView extends AppCompatImageView {
             // get top left most point of the top left most word in image
             //Log.d(TAG, "selectWordInBetweenCursors: changeStartCursorPoint");
             //if(allWordStartPoints.size() >= 1) {
-            if(firstTopLeftWordPoint != null){
+            if(snapToWord && (firstTopLeftWordPoint != null)){
                 startCursorPoint = firstTopLeftWordPoint;
                 //startCursorPoint = allWordStartPoints.get(0);
             }else {
@@ -987,7 +1078,7 @@ public class TouchImageView extends AppCompatImageView {
             // get bottom right most point of the bottom right most word in image
 
             //Log.d(TAG, "selectWordInBetweenCursors: changeendCursorPoint");
-            if(lastBottomRightWordPoint != null){
+            if(snapToWord && (lastBottomRightWordPoint != null)){
                 endCursorPoint = lastBottomRightWordPoint;
             }else {
                 endCursorPoint = mendCursorPoint;
@@ -1013,20 +1104,23 @@ public class TouchImageView extends AppCompatImageView {
             //canvas.drawLine(innerCursorAreaRect.left, innerCursorAreaRect.top, innerCursorAreaRect.right, innerCursorAreaRect.top, paint);
             canvas.drawRect(innerCursorAreaRect, paint);
         }
+        paintCursors(canvas);
 
         //Paint paint = new Paint();
-        paint.setStyle(Paint.Style.FILL);
+        /*paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.BLUE);
         paint.setAntiAlias(true);
         canvas.drawCircle(startCursorPoint.x, startCursorPoint.y, 30, paint);
         canvas.drawCircle(endCursorPoint.x, endCursorPoint.y, 30, paint);
-
-        // Draw margin rulers
-        paint.setColor(Color.GREEN);
-        canvas.drawLine(leftMarginRulerPoint.x, 0, leftMarginRulerPoint.x, loriginalImageHeight, paint);
-        canvas.drawCircle(leftMarginRulerPoint.x, loriginalImageHeight/2, 30, paint);
-        canvas.drawLine(rightMarginRulerPoint.x, 0, rightMarginRulerPoint.x, loriginalImageHeight, paint);
-        canvas.drawCircle(rightMarginRulerPoint.x, loriginalImageHeight/2, 30, paint);
+*/
+        if(showMargins) {
+            // Draw margin rulers
+            paint.setColor(Color.GREEN);
+            canvas.drawLine(leftMarginRulerPoint.x, 0, leftMarginRulerPoint.x, loriginalImageHeight, paint);
+            canvas.drawCircle(leftMarginRulerPoint.x, loriginalImageHeight / 2, 30, paint);
+            canvas.drawLine(rightMarginRulerPoint.x, 0, rightMarginRulerPoint.x, loriginalImageHeight, paint);
+            canvas.drawCircle(rightMarginRulerPoint.x, loriginalImageHeight / 2, 30, paint);
+        }
 
         if(debugMode && (loriginalImageHeight/loriginalImageWidth) > 1.3) {
             // Draw Zoomed area
@@ -1081,9 +1175,13 @@ public class TouchImageView extends AppCompatImageView {
         Canvas canvas = new Canvas(originalBitmap);
         List<VisionWordModel> filteredVisionWordList = visionTextRectanglesSimplified;
         if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
-            filteredVisionWordList = visionTextRectanglesSimplified.stream().filter(filteredVisionWord -> (filteredVisionWord.getTop() >= fzoomedTouchY - filteredVisionWord.getHeight() && filteredVisionWord.getTop() <= fzoomedTouchY + filteredVisionWord.getHeight() )).collect(Collectors.toList());
+            if(zoomedVisionTextRectangles.size() <= 0 && visionTextRectanglesSimplified.size() >= 1){
+                zoomedVisionTextRectangles = visionTextRectanglesSimplified;
+            }
+            filteredVisionWordList = zoomedVisionTextRectangles.stream().filter(filteredVisionWord -> (filteredVisionWord.getTop() >= fzoomedTouchY - filteredVisionWord.getHeight() && filteredVisionWord.getTop() <= fzoomedTouchY + filteredVisionWord.getHeight() )).collect(Collectors.toList());
         }
         //Log.d(TAG, "selectWordOnTouch: filteredVisionWordList size "+filteredVisionWordList.size() + " fzoomedTouchY "+ fzoomedTouchY);
+        //Log.d(TAG, "mhgfer selectWordOnTouch: size "+filteredVisionWordList.size());
         for (VisionWordModel visionWordModel : filteredVisionWordList) {
         //while (it.hasNext()) {
             //Map.Entry pair = (Map.Entry)it.next();
@@ -1096,15 +1194,16 @@ public class TouchImageView extends AppCompatImageView {
                 // }
                 // if(rect.contains(zoomedTouchX,zoomedTouchY) || rect.contains(zoomedTouchX - threshold,zoomedTouchY - threshold) || rect.contains(zoomedTouchX + threshold,zoomedTouchY + threshold)){
                 //Log.d(TAG, "qaz selectWordOnTouch: getLayoutParams "+mivStartCursor.getLayoutParams().toString());
-                Toast.makeText(mContext, " Clicked "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
 
                 // Toggle
-                //if(selectedVisionTextRectangles.contains(rect)){
+                if(selectedVisionTextRectanglesSimplified.contains(visionWordModel)){
+                    Toast.makeText(mContext, " removed "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
+
                     // Remove - draw Yellow
-                  /*  int pos = selectedVisionTextRectangles.indexOf(rect);
+                    //int pos = selectedVisionTextRectangles.indexOf(rect);
                     //Log.d(TAG, "already clicked rectangle: "+pair.getValue() + " rect: "+ rect.toShortString());
-                    selectedVisionTextRectangles.remove(rect);
-                    selectedVisionText.remove(pos);
+                    selectedVisionTextRectanglesSimplified.remove(visionWordModel);
+                    //selectedVisionText.remove(pos);
                     Paint paint = new Paint();
                     paint.setStyle(Paint.Style.STROKE);
                     paint.setStrokeWidth(2);
@@ -1112,10 +1211,12 @@ public class TouchImageView extends AppCompatImageView {
                     paint.setColor(Color.YELLOW);
                     paint.setAntiAlias(true);
 
-                    canvas.drawBitmap(originalBitmap, 0, 0, paint);
+                    //canvas.drawBitmap(originalBitmap, 0, 0, paint);
                     //canvas.drawText("Testing...", 10, 10, paint);
-                    canvas.drawRect(rect, paint);*/
-               // }else {
+                    canvas.drawRect(rect, paint);
+                }else {
+                    Toast.makeText(mContext, " Added "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
+
                     // Add - Draw Red
                     //selectedVisionTextRectangles.add(rect);
                    // selectedVisionText.add(visionWordModel.mtext);
@@ -1130,40 +1231,65 @@ public class TouchImageView extends AppCompatImageView {
                     paint.setColor(Color.RED);
                     paint.setAntiAlias(true);
 
-                    canvas.drawBitmap(originalBitmap, 0, 0, paint);
+                    //canvas.drawBitmap(originalBitmap, 0, 0, paint);
                     //canvas.drawText("Testing...", 10, 10, paint);
                     canvas.drawRect(rect, paint);
 
                     if(longPressMode) {
-                        paint.setStyle(Paint.Style.FILL);
-                        paint.setColor(Color.BLUE);
-                        canvas.drawCircle(rect.left, rect.bottom, 30, paint);
+
+                        //canvas.drawCircle(rect.left, rect.bottom, 30, paint);
                         startCursorPoint.x = rect.left;
-                        startCursorPoint.y = rect.bottom;
-                        canvas.drawCircle(rect.right, rect.bottom, 30, paint);
+                        startCursorPoint.y = rect.top;
+                        //canvas.drawCircle(rect.right, rect.bottom, 30, paint);
                         endCursorPoint.x = rect.right;
                         endCursorPoint.y = rect.bottom;
+                        paintCursors(canvas);
 
-                        // Draw margin rulers
-                        paint.setColor(Color.GREEN);
+
                         leftMarginRulerPoint.x = 30;
-                        leftMarginRulerPoint.y = loriginalImageHeight/2;
+                        leftMarginRulerPoint.y = loriginalImageHeight / 2;
                         rightMarginRulerPoint.x = loriginalImageWidth - 30;
-                        rightMarginRulerPoint.y = loriginalImageHeight/2;
-                        canvas.drawLine(leftMarginRulerPoint.x, 0, leftMarginRulerPoint.x, loriginalImageHeight, paint);
-                        canvas.drawCircle(leftMarginRulerPoint.x, loriginalImageHeight/2, 30, paint);
-                        canvas.drawLine(rightMarginRulerPoint.x, 0, rightMarginRulerPoint.x, loriginalImageHeight, paint);
-                        canvas.drawCircle(rightMarginRulerPoint.x, loriginalImageHeight/2, 30, paint);
+                        rightMarginRulerPoint.y = loriginalImageHeight / 2;
+                        if(showMargins) {
+                            // Draw margin rulers
+                            paint.setColor(Color.GREEN);
+                            canvas.drawLine(leftMarginRulerPoint.x, 0, leftMarginRulerPoint.x, loriginalImageHeight, paint);
+                            canvas.drawCircle(leftMarginRulerPoint.x, loriginalImageHeight / 2, 30, paint);
+                            canvas.drawLine(rightMarginRulerPoint.x, 0, rightMarginRulerPoint.x, loriginalImageHeight, paint);
+                            canvas.drawCircle(rightMarginRulerPoint.x, loriginalImageHeight / 2, 30, paint);
+                        }
 
                     }
-              //  }
+                }
                 TouchImageView.super.setImageBitmap(originalBitmap);
+                if(!longPressMode){
+                    Collections.sort(selectedVisionTextRectanglesSimplified, new Comparator<VisionWordModel>() {
+                        @Override
+                        public int compare(VisionWordModel p1, VisionWordModel p2) {
+                            // Ascending first left as same line words can have top +/- 5
+                            int threshold = minWordHeight;
+                            int c = 0;
+                            if((p1.mrect.top < p2.mrect.top + threshold) && (p1.mrect.top < p2.mrect.top - threshold)){
+                                c = -1;
+                            }else if((p1.mrect.top > p2.mrect.top + threshold) && (p1.mrect.top > p2.mrect.top - threshold)){
+                                c = 1;
+                            }
+                            if (c == 0)
+                                c = Double.compare(p1.mrect.left, p2.mrect.left);
+                            return c;
+                        }
+                    });
+                }
                 List<String> selectedVisionText = new ArrayList<>();
                 if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
                     selectedVisionText =
                             selectedVisionTextRectanglesSimplified.stream()
                                     .map(VisionWordModel::getText)
                                     .collect(Collectors.toList());
+                }else{
+                    for (VisionWordModel visionWordModelx : selectedVisionTextRectanglesSimplified) {
+                        selectedVisionText.add(visionWordModelx.mtext);
+                    }
                 }
                 //Toast.makeText(mContext, TextUtils.join(" ", selectedVisionText), Toast.LENGTH_SHORT).show();
                 TouchImageView.super.setContentDescription(TextUtils.join(" ", selectedVisionText));
@@ -1184,17 +1310,68 @@ public class TouchImageView extends AppCompatImageView {
             // Initialize a new Paint instance to draw the Rectangle
             Paint paint = new Paint();
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(Color.BLUE);
+            paint.setColor(Color.RED);
             paint.setAntiAlias(true);
 
-            canvas.drawCircle(touchX, touchY, 30, paint);
+            //canvas.drawCircle(touchX, touchY, 30, paint);
             startCursorPoint.x = touchX;
             startCursorPoint.y = touchY;
-            canvas.drawCircle(touchX + 100, touchY, 30, paint);
+            //canvas.drawCircle(touchX + 100, touchY, 30, paint);
             endCursorPoint.x = touchX + 100;
             endCursorPoint.y = touchY;
+            paintCursors(canvas);
         }
         //Log.d(TAG, "onLongPress: visionTextRectangles size "+visionTextRectangles.size());
+    }
+
+    private void paintCursors(Canvas canvas){
+        int threshold = 30;
+        int radius = 20;
+        Paint paint = new Paint();
+        paint.setStyle(Paint.Style.FILL_AND_STROKE);
+        paint.setColor(Color.BLUE);
+        paint.setAntiAlias(true);
+
+        PointF point1_draw = new PointF(startCursorPoint.x, startCursorPoint.y);
+        PointF point2_draw = new PointF(startCursorPoint.x -threshold, startCursorPoint.y);
+        PointF point3_draw = new PointF(startCursorPoint.x, startCursorPoint.y-threshold);
+
+        Path path = new Path();
+        path.setFillType(Path.FillType.EVEN_ODD);
+        path.moveTo(point1_draw.x,point1_draw.y);
+        path.lineTo(point2_draw.x,point2_draw.y);
+        path.lineTo(point3_draw.x,point3_draw.y);
+        path.lineTo(point1_draw.x,point1_draw.y);
+        path.close();
+
+        canvas.drawPath(path, paint);
+
+        point1_draw = new PointF(endCursorPoint.x, endCursorPoint.y);
+        point2_draw = new PointF(endCursorPoint.x +threshold, endCursorPoint.y);
+        point3_draw = new PointF(endCursorPoint.x, endCursorPoint.y+threshold);
+
+        path = new Path();
+        path.setFillType(Path.FillType.EVEN_ODD);
+        path.moveTo(point1_draw.x,point1_draw.y);
+        path.lineTo(point2_draw.x,point2_draw.y);
+        path.lineTo(point3_draw.x,point3_draw.y);
+        path.lineTo(point1_draw.x,point1_draw.y);
+        path.close();
+
+        canvas.drawPath(path, paint);
+        canvas.drawCircle(startCursorPoint.x - radius, startCursorPoint.y - radius, radius, paint);
+        canvas.drawCircle(endCursorPoint.x +radius, endCursorPoint.y+radius, radius, paint);
+    }
+
+    private boolean checkSameLineWords(List<Integer> allWordTopPositions, int top) {
+        // allWordBottomPositions[283, 281,
+        int threshold = minWordHeight;
+        for (int i=0; i<=threshold; i++) {
+            if (allWordTopPositions.contains(top+i)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean checkRectangleMatch(Rect rect, int zoomedTouchX, int zoomedTouchY) {
