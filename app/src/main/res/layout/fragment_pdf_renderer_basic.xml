@@ -20,16 +20,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.technikh.imagetextgrabber.fragments.PdfRendererBasicFragment">
-
-    <com.technikh.imagetextgrabber.widgets.TouchImageView
-        android:id="@+id/image"
+    <RelativeLayout
+        android:id="@+id/rlParentWrapper"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@android:color/white"
-        android:scaleType="fitCenter"
-        android:contentDescription="@null" />
+        android:layout_height="match_parent">
 
+        <com.bogdwellers.pinchtozoom.view.ImageViewPager
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"></com.bogdwellers.pinchtozoom.view.ImageViewPager>
+
+    </RelativeLayout>
     <LinearLayout
         style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"

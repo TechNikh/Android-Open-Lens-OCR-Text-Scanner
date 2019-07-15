@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><!--
+<?xml version="1.0" encoding="utf-8"?>
+<!--
   ~ Copyright (c) 2019. Nikhil Dubbaka from TechNikh.com under GNU AFFERO GENERAL PUBLIC LICENSE
   ~ Copyright and license notices must be preserved.
   ~ When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
@@ -20,6 +21,7 @@
 
 
         <RelativeLayout
+            android:id="@+id/rlParentWrapper"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
@@ -56,11 +58,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center" />
-        <!-- <io.apptik.widget.multiselectspinner.MultiSelectSpinner
-            android:id="@+id/spinner_options"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            />  -->
+
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"

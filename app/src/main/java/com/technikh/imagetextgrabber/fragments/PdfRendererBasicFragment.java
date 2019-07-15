@@ -31,6 +31,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
@@ -39,6 +41,10 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import androidx.fragment.app.Fragment;
+import androidx.viewpager.widget.PagerAdapter;
+import androidx.viewpager.widget.ViewPager;
+
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.technikh.imagetextgrabber.R;
 import com.technikh.imagetextgrabber.widgets.TouchImageView;
 
@@ -57,6 +63,7 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
 
     private String TAG = "PdfRendererBasicFragment";
     private Context mContext;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     /**
      * The filename of the PDF.
@@ -83,6 +90,9 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
      * {@link android.widget.ImageView} that shows a PDF page as a {@link android.graphics.Bitmap}
      */
     private TouchImageView mImageView;
+    private RelativeLayout imageParentLayout;
+    private ViewPager viewPager;
+    EditText et_image_text;
 
     /**
      * {@link android.widget.Button} to move to the previous page.
@@ -111,9 +121,12 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(getContext());
         // Retain view references.
-        mImageView = (TouchImageView) view.findViewById(R.id.image);
-        EditText et_image_text = getActivity().findViewById(R.id.et_image_text);
+        viewPager = view.findViewById(R.id.viewPager);
+        //mImageView = (TouchImageView) view.findViewById(R.id.image);
+        imageParentLayout = view.findViewById(R.id.rlParentWrapper);
+        et_image_text = getActivity().findViewById(R.id.et_image_text);
         mButtonPrevious = (Button) view.findViewById(R.id.previous);
         mButtonNext = (Button) view.findViewById(R.id.next);
         // Bind events.
@@ -121,8 +134,10 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
         mButtonNext.setOnClickListener(this);
 
         Bundle args = getArguments();
-        pdfFileUri = Uri.parse(args.getString("uri", ""));
-        Log.d(TAG, "onViewCreated: pdfFileUri "+pdfFileUri);
+        if(args != null) {
+            pdfFileUri = Uri.parse(args.getString("uri", ""));
+            Log.d(TAG, "onViewCreated: pdfFileUri " + pdfFileUri);
+        }
 
         mPageIndex = 0;
         // If there is a savedInstanceState (screen orientations, etc.), we restore the page index.
@@ -130,12 +145,7 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
             mPageIndex = savedInstanceState.getInt(STATE_CURRENT_PAGE_INDEX, 0);
         }
 
-        mImageView.setCustomEventListener(new TouchImageView.OnCustomEventListener() {
-            public void onEvent() {
-                et_image_text.setText(mImageView.getContentDescription());
-                et_image_text.setSelectAllOnFocus(true);
-            }
-        });
+
     }
 
     @Override
@@ -143,11 +153,17 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
         super.onStart();
         try {
             openRenderer(getActivity());
-            showPage(mPageIndex);
+            //showPage(mPageIndex, null);
         } catch (IOException e) {
             e.printStackTrace();
+            Bundle bundle = new Bundle();
+            mFirebaseAnalytics.logEvent("EXCEPTION_onStart", bundle);
             Toast.makeText(getActivity(), "Error! " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+        ImagePagerAdapter adapter;
+        adapter = new ImagePagerAdapter();
+        viewPager.setAdapter(adapter);
+        viewPager.setCurrentItem(0);
     }
 
     @Override
@@ -155,6 +171,8 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
         try {
             closeRenderer();
         } catch (IOException e) {
+            Bundle bundle = new Bundle();
+            mFirebaseAnalytics.logEvent("EXCEPTION_onStop", bundle);
             e.printStackTrace();
         }
         super.onStop();
@@ -173,27 +191,30 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
      */
     private void openRenderer(Context context) throws IOException {
         mContext = context;
-        // In this sample, we read a PDF from the assets directory.
-        File file = new File(context.getCacheDir(), getFileName(pdfFileUri));
-        if (!file.exists()) {
-            // Since PdfRenderer cannot handle the compressed asset file directly, we copy it into
-            // the cache directory.
-            //InputStream asset = context.getAssets().open(FILENAME);
-            //Uri myUri = Uri.parse("content://com.android.providers.downloads.documents/document/4406");
-            InputStream asset = context.getContentResolver().openInputStream(pdfFileUri);
-            FileOutputStream output = new FileOutputStream(file);
-            final byte[] buffer = new byte[1024];
-            int size;
-            while ((size = asset.read(buffer)) != -1) {
-                output.write(buffer, 0, size);
+        if(pdfFileUri != null) {
+            File file = new File(context.getCacheDir(), getFileName(pdfFileUri));
+            if (!file.exists()) {
+                // Since PdfRenderer cannot handle the compressed asset file directly, we copy it into
+                // the cache directory.
+                //InputStream asset = context.getAssets().open(FILENAME);
+                //Uri myUri = Uri.parse("content://com.android.providers.downloads.documents/document/4406");
+                InputStream asset = context.getContentResolver().openInputStream(pdfFileUri);
+                FileOutputStream output = new FileOutputStream(file);
+                final byte[] buffer = new byte[1024];
+                int size;
+                while ((size = asset.read(buffer)) != -1) {
+                    output.write(buffer, 0, size);
+                }
+                asset.close();
+                output.close();
             }
-            asset.close();
-            output.close();
-        }
-        mFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
-        // This is the PdfRenderer we use to render the PDF.
-        if (mFileDescriptor != null) {
-            mPdfRenderer = new PdfRenderer(mFileDescriptor);
+            mFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+            // This is the PdfRenderer we use to render the PDF.
+            if (mFileDescriptor != null) {
+                mPdfRenderer = new PdfRenderer(mFileDescriptor);
+            }
+        }else{
+            throw new IOException("Something wrong with fetching the PDF!");
         }
     }
 
@@ -238,26 +259,66 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
      *
      * @param index The page index.
      */
-    private void showPage(int index) {
+    private void showPage(int index, TouchImageView lImageView) {
+        et_image_text.setText("");
+        mImageView = lImageView;
         if (mPdfRenderer.getPageCount() <= index) {
             return;
         }
         // Make sure to close the current page before opening another one.
         if (null != mCurrentPage) {
-            mCurrentPage.close();
+            try {
+                mCurrentPage.close();
+            }catch (Exception e){
+                // java.lang.IllegalStateException: Already closed
+                e.printStackTrace();
+                Bundle bundle = new Bundle();
+                mFirebaseAnalytics.logEvent("EXCEPTION_mCurrentPage_Close", bundle);
+            }
         }
         // Use `openPage` to open a specific page in PDF.
         mCurrentPage = mPdfRenderer.openPage(index);
         // Important: the destination bitmap must be ARGB (not RGB).
+        Log.d(TAG, "showPage: getResources().getDisplayMetrics().widthPixels "+ getResources().getDisplayMetrics().widthPixels);
+        Log.d(TAG, "showPage: getResources().getDisplayMetrics().heightPixels "+ getResources().getDisplayMetrics().heightPixels);
+        float densityQuality = getResources().getDisplayMetrics().heightPixels/getResources().getDisplayMetrics().widthPixels;
+        Log.d(TAG, "showPage: densityQuality "+densityQuality);
+        Bitmap bitmap = Bitmap.createBitmap(
+                (int)(3 * mCurrentPage.getWidth()),
+                (int)(3 * mCurrentPage.getHeight()),
+                Bitmap.Config.ARGB_8888
+        );
+        /*
+        Bitmap bitmap = Bitmap.createBitmap(
+                getResources().getDisplayMetrics().densityDpi * mCurrentPage.getWidth() / 72,
+                getResources().getDisplayMetrics().densityDpi * mCurrentPage.getHeight() / 72,
+                Bitmap.Config.ARGB_8888
+        );
         Bitmap bitmap = Bitmap.createBitmap(mCurrentPage.getWidth(), mCurrentPage.getHeight(),
-                Bitmap.Config.ARGB_8888);
+                Bitmap.Config.ARGB_8888);*/
+        Log.d(TAG, "showPage: after bitmap generated, before render");
         // Here, we render the page onto the Bitmap.
         // To render a portion of the page, use the second and third parameter. Pass nulls to get
         // the default result.
         // Pass either RENDER_MODE_FOR_DISPLAY or RENDER_MODE_FOR_PRINT for the last parameter.
         mCurrentPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
         // We are ready to show the Bitmap to user.
+
+        /*ViewGroup.LayoutParams lParams = lImageView.getLayoutParams();
+        imageParentLayout.removeAllViews();
+        //imageParentLayout.removeView(mImageView);
+        lImageView = new TouchImageView(mContext);
+        lImageView.setLayoutParams(lParams);
+        imageParentLayout.addView(lImageView);*/
+
         mImageView.setImageBitmap(bitmap);
+        lImageView.setCustomEventListener(new TouchImageView.OnCustomEventListener() {
+            public void onEvent() {
+                et_image_text.setText(lImageView.getContentDescription());
+                et_image_text.setSelectAllOnFocus(true);
+            }
+        });
+
         updateUi();
     }
 
@@ -285,18 +346,54 @@ public class PdfRendererBasicFragment extends Fragment implements View.OnClickLi
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.previous: {
-                // Move to the previous page
-                showPage(mCurrentPage.getIndex() - 1);
                 mImageView.resetOCR();
+                // Move to the previous page
+                //showPage(mCurrentPage.getIndex() - 1, null);
                 break;
             }
             case R.id.next: {
-                // Move to the next page
-                showPage(mCurrentPage.getIndex() + 1);
                 mImageView.resetOCR();
+                // Move to the next page
+                //showPage(mCurrentPage.getIndex() + 1, null);
                 break;
             }
         }
     }
+
+    private class ImagePagerAdapter extends PagerAdapter {
+
+        @Override
+        public Object instantiateItem(ViewGroup collection, int position) {
+            LayoutInflater inflater = LayoutInflater.from(mContext);
+            View layout = (View) inflater.inflate(R.layout.row_pager_image, collection, false);
+            collection.addView(layout);
+
+            TouchImageView ivImage = layout.findViewById(R.id.ivImage);
+            showPage(position, ivImage);
+
+
+
+            return layout;
+        }
+
+        @Override
+        public void destroyItem(ViewGroup collection, int position, Object view) {
+            collection.removeView((RelativeLayout) view);
+        }
+
+        @Override
+        public int getCount() {
+            return mPdfRenderer.getPageCount();
+        }
+
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
+            return view == object;
+        }
+
+
+    }
+
+
 
 }

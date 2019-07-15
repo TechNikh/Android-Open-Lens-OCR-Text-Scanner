@@ -1,15 +1,24 @@
+/*
+ * Copyright (c) 2019. Nikhil Dubbaka from TechNikh.com under GNU AFFERO GENERAL PUBLIC LICENSE
+ * Copyright and license notices must be preserved.
+ * When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
+ */
+
 package com.technikh.imagetextgrabber.activities;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.technikh.imagetextgrabber.R;
@@ -19,30 +28,29 @@ import com.technikh.imagetextgrabber.widgets.MultiSelectSpinnerWidget;
 import com.technikh.imagetextgrabber.widgets.TouchImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
-//import io.apptik.widget.multiselectspinner.MultiSelectSpinner;
 
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.widget.ArrayAdapter;
+import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 
 public class MainActivity extends AppCompatActivity{
 
     int SELECT_PICTURE = 101;
     int SELECT_PDF = 102;
     TouchImageView ivImage;
-    //ImageView ivStartCursor, ivEndCursor;
+    RelativeLayout imageParentLayout;
     EditText et_image_text;
     private SlidingUpPanelLayout mLayout;
     private String TAG = "MainActivity";
     private String PREF_SPINNER_USER_SETTINGS = "spinner_user_settings";
     public static final String FRAGMENT_PDF_RENDERER_BASIC = "pdf_renderer_basic";
     private FirebaseAnalytics mFirebaseAnalytics;
+    ImageViewSettingsModel imageViewSettingsModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +63,7 @@ public class MainActivity extends AppCompatActivity{
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
 
         MultiSelectSpinnerWidget mySpin = (MultiSelectSpinnerWidget)findViewById(R.id.spinner_options);
-        ImageViewSettingsModel imageViewSettingsModel = new ImageViewSettingsModel();
+        imageViewSettingsModel = new ImageViewSettingsModel();
 
         mySpin.setItems(imageViewSettingsModel.getAllItems());
 
@@ -71,10 +79,8 @@ public class MainActivity extends AppCompatActivity{
         mySpin.setOnMultiChoiceClickListener(new DialogInterface.OnMultiChoiceClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                //Log.d(TAG, "onClick: setOnMultiChoiceClickListener");
                 List<Integer> list = mySpin.getSelectedIndicies();
                 String delimitedString = TextUtils.join(",", list);
-                //Log.d(TAG, "onClick: PREF_SPINNER_USER_SETTINGS "+delimitedString);
                 SharedPreferences.Editor editor = sharedPref.edit();
                 editor.putString(PREF_SPINNER_USER_SETTINGS, delimitedString);
                 editor.commit();
@@ -88,24 +94,8 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        /*ArrayList<String> options = new ArrayList<>();
-        options.add("1");
-        options.add("2");
-        options.add("3");
-        options.add("A");
-        options.add("B");
-        options.add("C");
-        MultiSelectSpinner multiSelectSpinner = (MultiSelectSpinner) findViewById(R.id.spinner_options);
-        ArrayAdapter<String> adapter = new ArrayAdapter <String>(this, android.R.layout.simple_list_item_multiple_choice, options);
-
-        multiSelectSpinner
-                .setListAdapter(adapter)
-                .setSelectAll(true)
-                .setMinSelectedItems(1);*/
-
         ivImage = findViewById(R.id.ivImage);
-        /*ivStartCursor = findViewById(R.id.ivStartCursor);
-        ivEndCursor = findViewById(R.id.ivEndCursor);*/
+        imageParentLayout = findViewById(R.id.rlParentWrapper);
         et_image_text = findViewById(R.id.et_image_text);
         mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
         mLayout.setAnchorPoint(0.7f);
@@ -130,15 +120,28 @@ public class MainActivity extends AppCompatActivity{
                 Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 Log.d(TAG, "onCreate: pdfUri "+pdfUri);
                 ivImage.setVisibility(View.GONE);
+                PdfRendererBasicFragment f = new PdfRendererBasicFragment();
+                Bundle args = new Bundle();
+                args.putString("uri", pdfUri.toString());
+                f.setArguments(args);
                 getSupportFragmentManager().beginTransaction()
-                        .add(R.id.container, new PdfRendererBasicFragment(),
+                        .add(R.id.container, f,
                                 FRAGMENT_PDF_RENDERER_BASIC)
                         .commit();
             }
         }else if (Intent.ACTION_VIEW.equals(action) && type != null) {
             Log.d(TAG, "onCreate: type "+type);
+            Bundle bundle = intent.getExtras();
+            Log.d(TAG, "onCreate: intent.getData() "+intent.getData());
+            if (bundle != null) {
+                for (String key : bundle.keySet()) {
+                    Object value = bundle.get(key);
+                    Log.d(TAG, String.format("%s %s (%s)", key,
+                            value.toString(), value.getClass().getName()));
+                }
+            }
             if (type.startsWith("image/")) {
-                Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Uri imageUri = (Uri) intent.getData();
                 if (imageUri != null) {
                     Glide.with(MainActivity.this)
                             .load(imageUri)
@@ -147,33 +150,26 @@ public class MainActivity extends AppCompatActivity{
                     loadDefaultImage = false;
                 }
             }else if (type.startsWith("application/pdf")) {
-                Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Uri pdfUri = (Uri) intent.getData();
                 Log.d(TAG, "onCreate: pdfUri "+pdfUri);
                 ivImage.setVisibility(View.GONE);
+                PdfRendererBasicFragment f = new PdfRendererBasicFragment();
+                Bundle args = new Bundle();
+                args.putString("uri", pdfUri.toString());
+                f.setArguments(args);
                 getSupportFragmentManager().beginTransaction()
-                        .add(R.id.container, new PdfRendererBasicFragment(),
+                        .add(R.id.container, f,
                                 FRAGMENT_PDF_RENDERER_BASIC)
                         .commit();
             }
         }
         if(loadDefaultImage) {
-            //RequestOptions options = new RequestOptions();
-            //options.fitCenter();
-            //options.centerCrop();
             Glide.with(MainActivity.this)
                     .load(Uri.parse("file:///android_asset/Example.png"))
-                    //.apply(options)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(ivImage);
         }
-        ivImage.initOptions(imageViewSettingsModel);
-
-        ivImage.setCustomEventListener(new TouchImageView.OnCustomEventListener() {
-            public void onEvent() {
-                et_image_text.setText(ivImage.getContentDescription());
-                et_image_text.setSelectAllOnFocus(true);
-            }
-        });
+        initImageView();
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -189,13 +185,28 @@ public class MainActivity extends AppCompatActivity{
         fabPdf.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pickPdf();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    pickPdf();
+                }else{
+                    Bundle bundle = new Bundle();
+                    mFirebaseAnalytics.logEvent("DEVICE_NO_SUPPORT_PDF", bundle);
+                    Snackbar.make(view, "Your device version doesn't support our PDF opening library!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
             }
         });
     }
 
-    private void handleIntent(){
+    private void initImageView(){
+        ivImage.initOptions(imageViewSettingsModel);
 
+        ivImage.setCustomEventListener(new TouchImageView.OnCustomEventListener() {
+            public void onEvent() {
+                et_image_text.setText(ivImage.getContentDescription());
+                et_image_text.setSelectAllOnFocus(true);
+            }
+        });
+        et_image_text.setText("");
     }
 
     public void pickPdf() {
@@ -221,20 +232,33 @@ public class MainActivity extends AppCompatActivity{
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == SELECT_PICTURE) {
+                ViewGroup.LayoutParams lParams = ivImage.getLayoutParams();
+                imageParentLayout.removeView(ivImage);
+                ivImage = new TouchImageView(this);
+                ivImage.setLayoutParams(lParams);
+                imageParentLayout.addView(ivImage);
+
+                //ivImage.setImageMatrix(new Matrix());
+                ivImage.setVisibility(View.VISIBLE);
+                findViewById(R.id.container).setVisibility(View.GONE);
+                //ImageViewUtils.updateImageViewMatrix(ivImage, ((BitmapDrawable) ivImage.getDrawable()).getBitmap());
+                //ivImage.resetOCR();
                 Glide.with(MainActivity.this)
                         .load(data.getData())
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .into(ivImage);
-                ivImage.resetOCR();
+
+                initImageView();
 
                 Bundle bundle = new Bundle();
                 mFirebaseAnalytics.logEvent("IMAGE_CHANGE", bundle);
             }else if (requestCode == SELECT_PDF) {
-                Log.d(TAG, "onActivityResult: data.getData() "+data.getData().toString());
+                Bundle bundle = new Bundle();
+                mFirebaseAnalytics.logEvent("PDF_CHANGE", bundle);
                 ivImage.setVisibility(View.GONE);
+                findViewById(R.id.container).setVisibility(View.VISIBLE);
 
                 PdfRendererBasicFragment f = new PdfRendererBasicFragment();
-                // Supply index input as an argument.
                 Bundle args = new Bundle();
                 args.putString("uri", data.getData().toString());
                 f.setArguments(args);
@@ -245,32 +269,4 @@ public class MainActivity extends AppCompatActivity{
             }
         }
     }
-/*
-    @Override
-    public void onItemsSelected(boolean[] items) {
-        Log.d(TAG, "onItemsSelected: "+items.toString());
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-    */
 }
