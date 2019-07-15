@@ -6,8 +6,6 @@ android {
         applicationId "com.technikh.imagetextgrabber"
         minSdkVersion 15
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -35,7 +33,6 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:16.0.8'
     implementation 'com.google.firebase:firebase-ml-vision:19.0.3'
     implementation 'com.sothree.slidinguppanel:library:3.4.0'
-    //implementation 'io.apptik.widget:multiselectspinner:1.0.12'
 }
 
 apply plugin: 'com.google.gms.google-services'
