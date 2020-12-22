@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">OpenSource OCR Image Text Scanner</string>
     <string name="action_settings">Settings</string>
+    <string name="app_name_with_index">OpenSource OCR (%1$d/%2$d)</string>
+    <string name="info">Info</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
 </resources>

@@ -13,6 +13,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.technikh.imagetextgrabber.R;
+import com.technikh.imagetextgrabber.fragments.PdfRendererBasicFragment;
 import com.technikh.imagetextgrabber.models.ImageViewSettingsModel;
 import com.technikh.imagetextgrabber.widgets.MultiSelectSpinnerWidget;
 import com.technikh.imagetextgrabber.widgets.TouchImageView;
@@ -33,12 +34,14 @@ import java.util.StringTokenizer;
 public class MainActivity extends AppCompatActivity{
 
     int SELECT_PICTURE = 101;
+    int SELECT_PDF = 102;
     TouchImageView ivImage;
     //ImageView ivStartCursor, ivEndCursor;
     EditText et_image_text;
     private SlidingUpPanelLayout mLayout;
     private String TAG = "MainActivity";
     private String PREF_SPINNER_USER_SETTINGS = "spinner_user_settings";
+    public static final String FRAGMENT_PDF_RENDERER_BASIC = "pdf_renderer_basic";
     private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
@@ -123,6 +126,34 @@ public class MainActivity extends AppCompatActivity{
                             .into(ivImage);
                     loadDefaultImage = false;
                 }
+            }else if (type.startsWith("application/pdf")) {
+                Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Log.d(TAG, "onCreate: pdfUri "+pdfUri);
+                ivImage.setVisibility(View.GONE);
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.container, new PdfRendererBasicFragment(),
+                                FRAGMENT_PDF_RENDERER_BASIC)
+                        .commit();
+            }
+        }else if (Intent.ACTION_VIEW.equals(action) && type != null) {
+            Log.d(TAG, "onCreate: type "+type);
+            if (type.startsWith("image/")) {
+                Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (imageUri != null) {
+                    Glide.with(MainActivity.this)
+                            .load(imageUri)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(ivImage);
+                    loadDefaultImage = false;
+                }
+            }else if (type.startsWith("application/pdf")) {
+                Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Log.d(TAG, "onCreate: pdfUri "+pdfUri);
+                ivImage.setVisibility(View.GONE);
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.container, new PdfRendererBasicFragment(),
+                                FRAGMENT_PDF_RENDERER_BASIC)
+                        .commit();
             }
         }
         if(loadDefaultImage) {
@@ -153,6 +184,27 @@ public class MainActivity extends AppCompatActivity{
                         .setAction("Action", null).show();*/
             }
         });
+
+        FloatingActionButton fabPdf = findViewById(R.id.fabPdf);
+        fabPdf.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                pickPdf();
+            }
+        });
+    }
+
+    private void handleIntent(){
+
+    }
+
+    public void pickPdf() {
+
+        Intent intent = new Intent();
+        intent.setType("application/pdf");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select PDF"), SELECT_PDF);
+
     }
 
     public void pickImage() {
@@ -177,6 +229,19 @@ public class MainActivity extends AppCompatActivity{
 
                 Bundle bundle = new Bundle();
                 mFirebaseAnalytics.logEvent("IMAGE_CHANGE", bundle);
+            }else if (requestCode == SELECT_PDF) {
+                Log.d(TAG, "onActivityResult: data.getData() "+data.getData().toString());
+                ivImage.setVisibility(View.GONE);
+
+                PdfRendererBasicFragment f = new PdfRendererBasicFragment();
+                // Supply index input as an argument.
+                Bundle args = new Bundle();
+                args.putString("uri", data.getData().toString());
+                f.setArguments(args);
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.container, f,
+                                FRAGMENT_PDF_RENDERER_BASIC)
+                        .commit();
             }
         }
     }

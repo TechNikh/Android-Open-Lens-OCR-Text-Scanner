@@ -28,6 +28,14 @@
         android:layout_height="match_parent" /> -->
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabPdf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:layout_marginBottom="80dp"
+        app:srcCompat="@drawable/ic_picture_as_pdf_black_24dp" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

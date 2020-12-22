@@ -129,7 +129,7 @@ public class TouchImageView extends AppCompatImageView {
     }*/
 
     public void resetOCR () {
-        Log.d(TAG, "resetOCR: 1");
+        //Log.d(TAG, "resetOCR: 1");
         unChangedOriginalBitmap = null;
         onImageChangeInImageView();
     }
@@ -1297,7 +1297,9 @@ public class TouchImageView extends AppCompatImageView {
                 //et_image_text.setText(TextUtils.join(" ", selectedVisionText));
                 //et_image_text.setSelectAllOnFocus(true);
                 //et_image_text.setText(et_image_text.getText()+" "+pair.getValue().toString());
-                mListener.onEvent();
+                if(mListener != null) {
+                    mListener.onEvent();
+                }
                 break;
             }else{
                 //Log.d(TAG, pair.getValue()+" onLongPress: not match (int)touchX,(int)touchY) "+(int)touchX+" Y: "+(int)touchY+" rect: left "+rect.left+" top "+rect.top+" right "+rect.right+" bottom "+rect.bottom);
