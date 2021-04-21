@@ -14,44 +14,165 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context="com.technikh.imagetextgrabber.fragments.PdfRendererBasicFragment">
 
-    <com.technikh.imagetextgrabber.widgets.TouchImageView
-        android:id="@+id/image"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@android:color/white"
-        android:scaleType="fitCenter"
-        android:contentDescription="@null" />
+
+<com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:sothree="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:id="@+id/sliding_layout"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:gravity="bottom"
+sothree:umanoPanelHeight="88dp"
+sothree:umanoShadowHeight="4dp">
 
     <LinearLayout
-        style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:measureWithLargestChild="true"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        tools:context="com.technikh.imagetextgrabber.activities.PdfRendererBasicFragment">
+        <RelativeLayout
+            android:id="@+id/rlParentWrapper"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/previous"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/previous" />
+            <com.bogdwellers.pinchtozoom.view.ImageViewPager
+                android:id="@+id/viewPager"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"></com.bogdwellers.pinchtozoom.view.ImageViewPager>
 
-        <Button
-            android:id="@+id/next"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
+        </RelativeLayout>
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/next" />
+            android:measureWithLargestChild="true"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/previous"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/previous" />
+
+            <Button
+                android:id="@+id/next"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/next" />
+        </LinearLayout>
+
     </LinearLayout>
+<!-- SLIDING bottom LAYOUT -->
+<LinearLayout
+    android:id="@+id/dragView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff"
+    android:clickable="true"
+    android:focusable="false"
+    android:orientation="vertical">
+
+    <com.technikh.imagetextgrabber.widgets.MultiSelectSpinnerWidget
+        android:id="@+id/spinner_options"
+        style="@style/Base.Widget.AppCompat.Spinner.Underlined"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_marginVertical="10dp"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:id="@+id/ll"
+            android:layout_alignParentTop="true"
+            android:layout_width="match_parent"
+            android:weightSum="5"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/hl"
+                android:padding="10dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Highlight"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="2dp"
+                />
+
+            <TextView
+                android:id="@+id/a_r"
+                android:padding="10dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Add/Remove"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="2dp"
+                />
+
+
+            <TextView
+                android:layout_marginHorizontal="2dp"
+                android:id="@+id/note"
+                android:padding="10dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Note"
+                />
+
+            <TextView
+                android:layout_marginHorizontal="2dp"
+                android:id="@+id/wikipedia"
+                android:padding="10dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Wikipedia"
+                />
+
+            <TextView
+                android:layout_marginHorizontal="2dp"
+                android:id="@+id/dictiaonary"
+                android:padding="10dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Dictionary"
+                />
+
+
+
+        </LinearLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_below="@+id/ll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+
+            <com.technikh.imagetextgrabber.widgets.ClearableEditText
+                android:id="@+id/et_image_text"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="top|left"
+                android:hint="Selected text from Image"
+                android:inputType="textMultiLine"
+                android:lines="8"
+                android:maxLines="10"
+                android:minLines="6"
+                android:scrollbars="vertical"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                tools:text="Selected text from Image" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </RelativeLayout>
 
 </LinearLayout>
+</com.sothree.slidinguppanel.SlidingUpPanelLayout>

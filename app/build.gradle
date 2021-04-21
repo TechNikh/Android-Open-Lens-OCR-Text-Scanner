@@ -1,13 +1,11 @@
 apply plugin: 'com.android.application'
-
+apply plugin:'kotlin-android-extensions'
 android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.technikh.imagetextgrabber"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -35,7 +33,13 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:16.0.8'
     implementation 'com.google.firebase:firebase-ml-vision:19.0.3'
     implementation 'com.sothree.slidinguppanel:library:3.4.0'
-    //implementation 'io.apptik.widget:multiselectspinner:1.0.12'
+
+    implementation 'com.github.dhaval2404:colorpicker:2.0'
+
+    def room_version = "2.2.6"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 }
 
 apply plugin: 'com.google.gms.google-services'
