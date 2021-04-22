@@ -7,26 +7,23 @@ import androidx.room.Query;
 
 import com.technikh.imagetextgrabber.room.entity.Highlights;
 
-import java.util.Collection;
-import java.util.List;
-
 @Dao
 public interface HighlightDataAccess {
 
     @Insert
-    public void add(List<Highlights> colors);
+    public void add(java.util.List<Highlights> colors);
 
     @Insert
     public void add(Highlights color);
 
     @Delete
-    public void remove(List<Highlights> colors);
+    public void remove(java.util.List<Highlights> colors);
 
     @Delete
     public void remove(Highlights colors);
 
     @Query("SELECT * FROM highlights")
-    public List<Highlights> getMarkers();
+    public java.util.List<Highlights> getMarkers();
 
 
 }

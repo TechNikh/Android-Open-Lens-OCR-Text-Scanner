@@ -1,12 +1,10 @@
 package com.technikh.imagetextgrabber.widgets;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.View;
 
 import com.technikh.imagetextgrabber.R;
 
@@ -14,9 +12,9 @@ import androidx.appcompat.widget.AppCompatEditText;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
-public class ClearableEditText extends AppCompatEditText implements View.OnTouchListener, View.OnFocusChangeListener, TextWatcher {
+public class ClearableEditText extends AppCompatEditText implements android.view.View.OnTouchListener, android.view.View.OnFocusChangeListener, TextWatcher {
 
-    private Drawable mClearTextIcon;
+    private android.graphics.drawable.Drawable mClearTextIcon;
     private OnFocusChangeListener mOnFocusChangeListener;
     private OnTouchListener mOnTouchListener;
 
@@ -46,8 +44,8 @@ public class ClearableEditText extends AppCompatEditText implements View.OnTouch
     }
 
     private void init(final Context context) {
-        final Drawable drawable = ContextCompat.getDrawable(context, R.drawable.ic_format_clear);
-        final Drawable wrappedDrawable = DrawableCompat.wrap(drawable); //Wrap the drawable so that it can be tinted pre Lollipop
+        final android.graphics.drawable.Drawable drawable = ContextCompat.getDrawable(context, R.drawable.ic_format_clear);
+        final android.graphics.drawable.Drawable wrappedDrawable = DrawableCompat.wrap(drawable); //Wrap the drawable so that it can be tinted pre Lollipop
         DrawableCompat.setTint(wrappedDrawable, getResources().getColor(android.R.color.holo_red_dark));
         mClearTextIcon = wrappedDrawable;
         mClearTextIcon.setBounds(0, 0, mClearTextIcon.getIntrinsicHeight(), mClearTextIcon.getIntrinsicHeight());
@@ -59,7 +57,7 @@ public class ClearableEditText extends AppCompatEditText implements View.OnTouch
 
 
     @Override
-    public void onFocusChange(final View view, final boolean hasFocus) {
+    public void onFocusChange(final android.view.View view, final boolean hasFocus) {
         if (hasFocus) {
             setClearIconVisible(getText().length() > 0);
         } else {
@@ -71,7 +69,7 @@ public class ClearableEditText extends AppCompatEditText implements View.OnTouch
     }
 
     @Override
-    public boolean onTouch(final View view, final MotionEvent motionEvent) {
+    public boolean onTouch(final android.view.View view, final MotionEvent motionEvent) {
         final int x = (int) motionEvent.getX();
         if (mClearTextIcon.isVisible() && x > getWidth() - getPaddingRight() - mClearTextIcon.getIntrinsicWidth()) {
             if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
@@ -101,7 +99,7 @@ public class ClearableEditText extends AppCompatEditText implements View.OnTouch
 
     private void setClearIconVisible(final boolean visible) {
         mClearTextIcon.setVisible(visible, false);
-        final Drawable[] compoundDrawables = getCompoundDrawables();
+        final android.graphics.drawable.Drawable[] compoundDrawables = getCompoundDrawables();
         setCompoundDrawables(
                 compoundDrawables[0],
                 compoundDrawables[1],

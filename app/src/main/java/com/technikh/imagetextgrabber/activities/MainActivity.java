@@ -19,54 +19,41 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 
-import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.github.dhaval2404.colorpicker.ColorPickerDialog;
 import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog;
 import com.github.dhaval2404.colorpicker.listener.ColorListener;
 import com.github.dhaval2404.colorpicker.model.ColorSwatch;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.technikh.imagetextgrabber.R;
 import com.technikh.imagetextgrabber.models.ImageViewSettingsModel;
 import com.technikh.imagetextgrabber.models.VisionWordModel;
-import com.technikh.imagetextgrabber.room.MyDatabase;
-import com.technikh.imagetextgrabber.room.dao.HighlightDataAccess;
-import com.technikh.imagetextgrabber.room.dao.ImagesDataAccess;
 import com.technikh.imagetextgrabber.room.entity.Highlights;
 import com.technikh.imagetextgrabber.room.entity.Images;
 import com.technikh.imagetextgrabber.widgets.MultiSelectSpinnerWidget;
 import com.technikh.imagetextgrabber.widgets.TouchImageView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.room.Room;
 
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
-import android.widget.ListView;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity{
     private MaterialColorPickerDialog colorPickerDialog;
@@ -74,6 +61,7 @@ public class MainActivity extends AppCompatActivity{
     int SELECT_PICTURE = 101;
     int SELECT_PDF = 102;
     TouchImageView ivImage;
+    ImageView ivNote;
     RelativeLayout imageParentLayout;
     EditText et_image_text;
     private SlidingUpPanelLayout mLayout;
@@ -82,13 +70,13 @@ public class MainActivity extends AppCompatActivity{
     public static final String FRAGMENT_PDF_RENDERER_BASIC = "pdf_renderer_basic";
     private FirebaseAnalytics mFirebaseAnalytics;
     ImageViewSettingsModel imageViewSettingsModel;
-    public static MyDatabase db;
+    public static com.technikh.imagetextgrabber.room.MyDatabase db;
 
     public static final String DBNAME="mydb";
-    private HighlightDataAccess markerDao;
-    private ImagesDataAccess imagesDao;
+    private com.technikh.imagetextgrabber.room.dao.HighlightDataAccess markerDao;
+    private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess imagesDao;
     public static String currentUri="default";
-    private List<MyVisionWordModel> savedRects=new ArrayList<>();
+    private java.util.List<MyVisionWordModel> savedRects=new ArrayList<>();
     private ArrayList<String> colorArray;
     private GridView gridView;
     private  AlertDialog alertDialog;
@@ -96,19 +84,51 @@ public class MainActivity extends AppCompatActivity{
 
     class MyVisionWordModel extends VisionWordModel{
         String color;
+        String note;
 
-        public MyVisionWordModel(Rect rect, String text, String color) {
+        public MyVisionWordModel(Rect rect, String text, String color,String note) {
             super(rect, text);
             this.color=color;
+            this.note=note;
         }
 
 
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ivNote=findViewById(R.id.note_iv);
+        ivNote.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View view) {
+                android.view.View v=getLayoutInflater().inflate(R.layout.note_et,null,false);
+                AlertDialog ad=new AlertDialog.Builder(MainActivity.this)
+                        .setView(v)
+                        .create();
+
+                EditText et=v.findViewById(R.id.et);
+                Button bt=v.findViewById(R.id.btn);
+                bt.setOnClickListener(new android.view.View.OnClickListener() {
+                    @Override
+                    public void onClick(android.view.View view) {
+                        String notes=et.getText().toString().trim();
+                        if(notes.isEmpty()){
+                            Toast.makeText(getApplicationContext(),"Please enter note",Toast.LENGTH_LONG).show();
+                        }
+                        else {
+                            ivImage.saveNote(notes);
+                            ad.dismiss();
+                        }
+
+                    }
+                });
+
+                ad.show();
+            }
+        });
 
         gridView=getLayoutInflater().inflate(R.layout.grid,null,false).findViewById(R.id.grid);
         alertDialog=new AlertDialog.Builder(MainActivity.this)
@@ -121,8 +141,8 @@ public class MainActivity extends AppCompatActivity{
         colorArray = new ArrayList<>();
         colorArray.add("#f6e58d");
 
-        db=Room.databaseBuilder(getApplicationContext(),
-                MyDatabase.class, DBNAME).build();
+        db= androidx.room.Room.databaseBuilder(getApplicationContext(),
+                com.technikh.imagetextgrabber.room.MyDatabase.class, DBNAME).build();
 
 
         markerDao=db.getHighlightsDao();
@@ -164,9 +184,9 @@ public class MainActivity extends AppCompatActivity{
 
                 }).build();
 
-        findViewById(R.id.highlight).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.highlight).setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 new Thread(){
                     @Override
                     public void run() {
@@ -186,9 +206,9 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        findViewById(R.id.add_highlight).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.add_highlight).setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 /*new AlertDialog.Builder(MainActivity.this)
                         .setTitle("")
                         .setMessage("")
@@ -281,9 +301,9 @@ public class MainActivity extends AppCompatActivity{
         });
 
 
-        findViewById(R.id.delete_highlight).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.delete_highlight).setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
 
                 new Thread(){
                     @Override
@@ -362,7 +382,7 @@ public class MainActivity extends AppCompatActivity{
         mySpin.setOnMultiChoiceClickListener(new DialogInterface.OnMultiChoiceClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                List<Integer> list = mySpin.getSelectedIndicies();
+                java.util.List<Integer> list = mySpin.getSelectedIndicies();
                 String delimitedString = TextUtils.join(",", list);
                 SharedPreferences.Editor editor = sharedPref.edit();
                 editor.putString(PREF_SPINNER_USER_SETTINGS, delimitedString);
@@ -371,7 +391,7 @@ public class MainActivity extends AppCompatActivity{
                 imageViewSettingsModel.setSelectedItems(mySpin.getSelectedIndicies());
                 ivImage.initOptions(imageViewSettingsModel);
 
-                Bundle bundle = new Bundle();
+                android.os.Bundle bundle = new android.os.Bundle();
                 bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, delimitedString);
                 mFirebaseAnalytics.logEvent("SPINNER_SETTINGS_CHANGE", bundle);
             }
@@ -395,7 +415,7 @@ public class MainActivity extends AppCompatActivity{
             if (type.startsWith("image/")) {
                 Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 if (imageUri != null) {
-                    Glide.with(MainActivity.this)
+                    com.bumptech.glide.Glide.with(MainActivity.this)
                             .load(imageUri)
                             .diskCacheStrategy(DiskCacheStrategy.ALL)
                             .into(ivImage);
@@ -403,30 +423,30 @@ public class MainActivity extends AppCompatActivity{
                 }
             }else if (type.startsWith("application/pdf")) {
                 Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                Log.d(TAG, "onCreate: pdfUri "+pdfUri);
-                ivImage.setVisibility(View.GONE);
+                android.util.Log.d(TAG, "onCreate: pdfUri "+pdfUri);
+                ivImage.setVisibility(android.view.View.GONE);
 
-                Bundle args = new Bundle();
+                android.os.Bundle args = new android.os.Bundle();
                 args.putString("uri", pdfUri.toString());
                 startActivity(new Intent(MainActivity.this,PdfRendererBasicFragment.class)
                         .putExtra("bundle",args)
                 );
             }
         }else if (Intent.ACTION_VIEW.equals(action) && type != null) {
-            Log.d(TAG, "onCreate: type "+type);
-            Bundle bundle = intent.getExtras();
-            Log.d(TAG, "onCreate: intent.getData() "+intent.getData());
+            android.util.Log.d(TAG, "onCreate: type "+type);
+            android.os.Bundle bundle = intent.getExtras();
+            android.util.Log.d(TAG, "onCreate: intent.getData() "+intent.getData());
             if (bundle != null) {
                 for (String key : bundle.keySet()) {
                     Object value = bundle.get(key);
-                    Log.d(TAG, String.format("%s %s (%s)", key,
+                    android.util.Log.d(TAG, String.format("%s %s (%s)", key,
                             value.toString(), value.getClass().getName()));
                 }
             }
             if (type.startsWith("image/")) {
                 Uri imageUri = (Uri) intent.getData();
                 if (imageUri != null) {
-                    Glide.with(MainActivity.this)
+                    com.bumptech.glide.Glide.with(MainActivity.this)
                             .load(imageUri)
                             .diskCacheStrategy(DiskCacheStrategy.ALL)
                             .into(ivImage);
@@ -434,10 +454,10 @@ public class MainActivity extends AppCompatActivity{
                 }
             }else if (type.startsWith("application/pdf")) {
                 Uri pdfUri = (Uri) intent.getData();
-                Log.d(TAG, "onCreate: pdfUri "+pdfUri);
-                ivImage.setVisibility(View.GONE);
+                android.util.Log.d(TAG, "onCreate: pdfUri "+pdfUri);
+                ivImage.setVisibility(android.view.View.GONE);
 
-                Bundle args = new Bundle();
+                android.os.Bundle args = new android.os.Bundle();
                 args.putString("uri", pdfUri.toString());
                 startActivity(new Intent(MainActivity.this,PdfRendererBasicFragment.class)
                         .putExtra("bundle",args)
@@ -447,16 +467,16 @@ public class MainActivity extends AppCompatActivity{
             }
         }
         if(loadDefaultImage) {
-            Glide.with(MainActivity.this)
+            com.bumptech.glide.Glide.with(MainActivity.this)
                     .load(Uri.parse("file:///android_asset/Example.png"))
-                    .listener(new RequestListener<Drawable>() {
+                    .listener(new RequestListener<android.graphics.drawable.Drawable>() {
                         @Override
-                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                        public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
                             return false;
                         }
 
                         @Override
-                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                        public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, DataSource dataSource, boolean isFirstResource) {
 
                             showSavedHighlights(resource);
                             return false;
@@ -469,24 +489,24 @@ public class MainActivity extends AppCompatActivity{
 
 
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        com.google.android.material.floatingactionbutton.FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 pickImage();
                 /*Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();*/
             }
         });
 
-        FloatingActionButton fabPdf = findViewById(R.id.fabPdf);
-        fabPdf.setOnClickListener(new View.OnClickListener() {
+        com.google.android.material.floatingactionbutton.FloatingActionButton fabPdf = findViewById(R.id.fabPdf);
+        fabPdf.setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     pickPdf();
                 }else{
-                    Bundle bundle = new Bundle();
+                    android.os.Bundle bundle = new android.os.Bundle();
                     mFirebaseAnalytics.logEvent("DEVICE_NO_SUPPORT_PDF", bundle);
                     Snackbar.make(view, "Your device version doesn't support our PDF opening library!", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
@@ -551,21 +571,21 @@ public class MainActivity extends AppCompatActivity{
                 imageParentLayout.addView(ivImage);
 
                 //ivImage.setImageMatrix(new Matrix());
-                ivImage.setVisibility(View.VISIBLE);
-                findViewById(R.id.container).setVisibility(View.GONE);
+                ivImage.setVisibility(android.view.View.VISIBLE);
+                findViewById(R.id.container).setVisibility(android.view.View.GONE);
                 //ImageViewUtils.updateImageViewMatrix(ivImage, ((BitmapDrawable) ivImage.getDrawable()).getBitmap());
                 //ivImage.resetOCR();
 
-                Glide.with(MainActivity.this)
+                com.bumptech.glide.Glide.with(MainActivity.this)
                         .load(data.getData())
-                        .listener(new RequestListener<Drawable>() {
+                        .listener(new RequestListener<android.graphics.drawable.Drawable>() {
                             @Override
-                            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
                                 return false;
                             }
 
                             @Override
-                            public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                            public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, DataSource dataSource, boolean isFirstResource) {
 
                                 showSavedHighlights(resource);
                                 return false;
@@ -577,17 +597,17 @@ public class MainActivity extends AppCompatActivity{
 
                 initImageView();
 
-                Bundle bundle = new Bundle();
+                android.os.Bundle bundle = new android.os.Bundle();
                 mFirebaseAnalytics.logEvent("IMAGE_CHANGE", bundle);
             }
             else if (requestCode == SELECT_PDF) {
-                Bundle bundle = new Bundle();
+                android.os.Bundle bundle = new android.os.Bundle();
                 mFirebaseAnalytics.logEvent("PDF_CHANGE", bundle);
-                ivImage.setVisibility(View.GONE);
-                findViewById(R.id.container).setVisibility(View.VISIBLE);
+                ivImage.setVisibility(android.view.View.GONE);
+                findViewById(R.id.container).setVisibility(android.view.View.VISIBLE);
 
 
-                Bundle args = new Bundle();
+                android.os.Bundle args = new android.os.Bundle();
                 args.putString("uri", data.getData().toString());
                 startActivity(new Intent(MainActivity.this,PdfRendererBasicFragment.class)
                         .putExtra("bundle",args)
@@ -598,7 +618,7 @@ public class MainActivity extends AppCompatActivity{
 
 
 
-    public void showSavedHighlights(Drawable drawable){
+    public void showSavedHighlights(android.graphics.drawable.Drawable drawable){
         //get last read image
         //...
 
@@ -610,7 +630,7 @@ public class MainActivity extends AppCompatActivity{
                 savedRects.clear();
                 for(Images imageInfo:imagesDao.getAllImage(currentUri)){
                     Rect rect=new Rect(imageInfo.left,imageInfo.top,imageInfo.right,imageInfo.bottom);
-                    MyVisionWordModel visionWordModel=new MyVisionWordModel(rect,imageInfo.text,imageInfo.color);
+                    MyVisionWordModel visionWordModel=new MyVisionWordModel(rect,imageInfo.text,imageInfo.color,imageInfo.note);
                     savedRects.add(visionWordModel);
 
                 }
@@ -641,7 +661,18 @@ public class MainActivity extends AppCompatActivity{
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            canvas.drawRect(visionWordModel.mrect, paint);
+                            if(visionWordModel.note.isEmpty()) {
+                                canvas.drawRect(visionWordModel.mrect, paint);
+                            }
+                            else{
+                                final android.graphics.drawable.Drawable d=getResources().getDrawable(R.drawable.ic_note);
+                                final int left=visionWordModel.mrect.left;
+                                final int top=visionWordModel.mrect.top;
+                                final int right=visionWordModel.mrect.right;
+                                final int bottom=(visionWordModel.mrect.bottom);
+                                d.setBounds(left,top,right,bottom);
+                                d.draw(canvas);
+                            }
                             if(finalI ==savedRects.size()){
                                 ivImage.invalidate();
                             }
@@ -666,15 +697,15 @@ public class MainActivity extends AppCompatActivity{
         }
 
 
-        @NonNull
+        @androidx.annotation.NonNull
         @Override
-        public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        public android.view.View getView(int position, @androidx.annotation.Nullable android.view.View convertView, @androidx.annotation.NonNull ViewGroup parent) {
             convertView=getLayoutInflater().inflate(R.layout.marker,null,false);
-            TextView tv=convertView.findViewById(R.id.tv);
+            android.widget.TextView tv=convertView.findViewById(R.id.tv);
             tv.setBackgroundColor(Color.parseColor(colorArray.get(position)));
-            tv.setOnClickListener(new View.OnClickListener() {
+            tv.setOnClickListener(new android.view.View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
+                public void onClick(android.view.View view) {
                     ivImage.highlight(colorArray.get(position));
                 }
             });

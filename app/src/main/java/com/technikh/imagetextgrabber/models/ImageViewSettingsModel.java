@@ -6,20 +6,16 @@ package com.technikh.imagetextgrabber.models;
  * When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
  */
 
-import android.util.Log;
-
-import java.util.List;
-
 public class ImageViewSettingsModel {
     private String TAG = "ImageViewSettingsModel";
     public Boolean allowZoom = false, showMargins = false, snapToWord = false, allWordBorders = false, toggleWordOnClick = false;
     String[] strings = { "Snap on Word", "Allow Zoom", "Show Margins", "All Word Borders", "Toggle Word onClick" };
-    List<Integer> mSettings;
+    java.util.List<Integer> mSettings;
 
     public ImageViewSettingsModel() {
     }
 
-    public void setSelectedItems(List<Integer> settings) {
+    public void setSelectedItems(java.util.List<Integer> settings) {
         mSettings = settings;
         if(mSettings.contains(0)){
             snapToWord = true;

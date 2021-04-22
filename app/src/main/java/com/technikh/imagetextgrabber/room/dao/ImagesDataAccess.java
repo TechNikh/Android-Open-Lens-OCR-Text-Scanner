@@ -8,8 +8,6 @@ import androidx.room.Update;
 
 import com.technikh.imagetextgrabber.room.entity.Images;
 
-import java.util.List;
-
 @Dao
 public interface ImagesDataAccess {
 
@@ -23,7 +21,7 @@ public interface ImagesDataAccess {
     public void delete(Images image);
 
     @Query("SELECT * FROM IMAGES WHERE :name==forImage")
-    public List<Images> getAllImage(String name);
+    public java.util.List<Images> getAllImage(String name);
 
 
 }

@@ -3,7 +3,11 @@
     package="com.technikh.imagetextgrabber"
     android:versionCode="2"
     android:versionName="1.2">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

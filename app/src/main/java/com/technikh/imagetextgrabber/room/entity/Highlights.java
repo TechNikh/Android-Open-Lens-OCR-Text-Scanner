@@ -1,6 +1,5 @@
 package com.technikh.imagetextgrabber.room.entity;
 
-import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -11,7 +10,10 @@ public class Highlights {
     @PrimaryKey(autoGenerate = true)
     public int id;
 
-    @NonNull
+    @androidx.annotation.NonNull
     @ColumnInfo
     public String color;
+
+
+
 }
