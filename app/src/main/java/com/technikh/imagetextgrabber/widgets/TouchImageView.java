@@ -6,42 +6,28 @@ package com.technikh.imagetextgrabber.widgets;
  * When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
  */
 
-import android.content.ClipData;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
-import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
-import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.util.SparseArray;
-import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.bogdwellers.pinchtozoom.ImageMatrixTouchHandler;
 import com.bogdwellers.pinchtozoom.ImageViewerCorrector;
-import com.bogdwellers.pinchtozoom.MultiTouchListener;
-import com.bogdwellers.pinchtozoom.util.ImageViewUtils;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -50,28 +36,23 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+import com.technikh.imagetextgrabber.R;
 import com.technikh.imagetextgrabber.activities.MainActivity;
 import com.technikh.imagetextgrabber.models.ImageViewSettingsModel;
 import com.technikh.imagetextgrabber.models.VisionWordModel;
-import com.technikh.imagetextgrabber.room.dao.ImagesDataAccess;
 import com.technikh.imagetextgrabber.room.entity.Images;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 
 public class TouchImageView extends AppCompatImageView {
 
-    private ImagesDataAccess dao;
+    private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess dao;
 
     public void highlight(String s){
 
@@ -95,7 +76,7 @@ public class TouchImageView extends AppCompatImageView {
             originalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
             //}
             Canvas canvas = new Canvas(originalBitmap);
-            Toast.makeText(getContext().getApplicationContext(),selectedVisionTextRectanglesSimplified.size()+"",Toast.LENGTH_LONG).show();
+            //Toast.makeText(getContext().getApplicationContext(),selectedVisionTextRectanglesSimplified.size()+"",Toast.LENGTH_LONG).show();
             for (VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
                 //Toast.makeText(getContext().getApplicationContext(),"in",Toast.LENGTH_LONG).show();
                 canvas.drawRect(visionWordModel.mrect, paint);
@@ -110,11 +91,70 @@ public class TouchImageView extends AppCompatImageView {
                                 visionWordModel.mrect.bottom,
                                 visionWordModel.mtext,
                                 "#CC" + s.subSequence(1, s.length()),
-                                MainActivity.currentUri
+                                MainActivity.currentUri,
+                                ""
                         ));
 
                     }
                 }.start();
+
+            }
+        }catch (Exception e){
+            Toast.makeText(getContext(),e.toString(),Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void saveNote(String note){
+
+        try {
+            dao = MainActivity.db.getImagesDao();
+
+            final Bitmap originalBitmap;
+        /*if(longPressMode){
+            originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
+        }else {*/
+            originalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
+            //}
+            Canvas canvas = new Canvas(originalBitmap);
+
+
+            if(selectedVisionTextRectanglesSimplified.isEmpty()){
+                Toast.makeText(getContext().getApplicationContext(),"Please select text",Toast.LENGTH_LONG).show();
+            }
+            else if(selectedVisionTextRectanglesSimplified.size()==1) {
+                for (final VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
+                    final android.graphics.drawable.Drawable d=getResources().getDrawable(R.drawable.ic_note);
+                    final int left=visionWordModel.mrect.right;
+                    final int top=visionWordModel.mrect.bottom;
+                    final int right=visionWordModel.mrect.right+((visionWordModel.mrect.right-visionWordModel.mrect.left)/2);
+                    final int bottom=visionWordModel.mrect.bottom-(visionWordModel.mrect.top-visionWordModel.mrect.bottom);
+                    d.setBounds(left,top,right,bottom);
+
+                    d.draw(canvas);
+
+                    new Thread() {
+                        @Override
+                        public void run() {
+
+
+                            dao.insert(new Images(left,top,right,bottom,
+                                    visionWordModel.mtext,
+                                    "#00000000",
+                                    MainActivity.currentUri,
+                                    note
+                            ));
+
+
+
+                        }
+                    }.start();
+
+                }
+            }
+            else{
+                //ToDo:implement multi word
+                Toast.makeText(getContext().getApplicationContext(),"Multi word not yet implemented",Toast.LENGTH_LONG)
+                        .show();
 
             }
         }catch (Exception e){
@@ -143,10 +183,10 @@ public class TouchImageView extends AppCompatImageView {
     float widthZoomFactor = 1, heightZoomFactor = 1;
     int zoomedOffsetX, zoomedOffsetY;
 
-    private List<VisionWordModel> visionTextRectanglesSimplified = new ArrayList<>();
+    private java.util.List<VisionWordModel> visionTextRectanglesSimplified = new ArrayList<>();
     private int minWordHeight = 1000;
-    private List<VisionWordModel> zoomedVisionTextRectangles = new ArrayList<>();
-    private List<VisionWordModel> selectedVisionTextRectanglesSimplified = new ArrayList<>();
+    private java.util.List<VisionWordModel> zoomedVisionTextRectangles = new ArrayList<>();
+    private java.util.List<VisionWordModel> selectedVisionTextRectanglesSimplified = new ArrayList<>();
 
     Bitmap unChangedOriginalBitmap = null;
 
@@ -190,7 +230,7 @@ public class TouchImageView extends AppCompatImageView {
             imageMatrixTouchHandler.animateZoom(0, 0);
         } catch (Exception e) {
             e.printStackTrace();
-            Bundle bundle = new Bundle();
+            android.os.Bundle bundle = new android.os.Bundle();
             mFirebaseAnalytics.logEvent("EXCEPTION_animateZoom", bundle);
         }
         sharedConstructing(mContext);
@@ -267,15 +307,15 @@ public class TouchImageView extends AppCompatImageView {
                                                     // Task completed successfully
                                                     // ...
                                                     //Log.d(TAG, "visionDetector onSuccess: " + firebaseVisionText.getText());
-                                                    List<FirebaseVisionText.TextBlock> textBlocks = firebaseVisionText.getTextBlocks();
+                                                    java.util.List<FirebaseVisionText.TextBlock> textBlocks = firebaseVisionText.getTextBlocks();
 
                                                     selectedVisionTextRectanglesSimplified.clear();
                                                     for (int i = 0; i < textBlocks.size(); i++) {
                                                         FirebaseVisionText.TextBlock tBlock = textBlocks.get(i);
-                                                        List<FirebaseVisionText.Line> tBlockLines = tBlock.getLines();
+                                                        java.util.List<FirebaseVisionText.Line> tBlockLines = tBlock.getLines();
                                                         for (int j = 0; j < tBlockLines.size(); j++) {
                                                             FirebaseVisionText.Line tLine = tBlockLines.get(j);
-                                                            List<FirebaseVisionText.Element> tLineElements = tLine.getElements();
+                                                            java.util.List<FirebaseVisionText.Element> tLineElements = tLine.getElements();
                                                             for (int k = 0; k < tLineElements.size(); k++) {
                                                                 FirebaseVisionText.Element tElement = tLineElements.get(k);
                                                                 Rect boundingRect = tElement.getBoundingBox();
@@ -308,9 +348,9 @@ public class TouchImageView extends AppCompatImageView {
                                                     }catch (Exception e){
                                                         // java.lang.IllegalArgumentException: Comparison method violates its general contract!
                                                         // https://stackoverflow.com/questions/11441666/java-error-comparison-method-violates-its-general-contract
-                                                        Log.d(TAG, "Exception: sort ");
+                                                        android.util.Log.d(TAG, "Exception: sort ");
                                                         e.printStackTrace();
-                                                        Bundle bundle = new Bundle();
+                                                        android.os.Bundle bundle = new android.os.Bundle();
                                                         mFirebaseAnalytics.logEvent("EXCEPTION_sort", bundle);
                                                     }
                                                 }
@@ -318,10 +358,10 @@ public class TouchImageView extends AppCompatImageView {
                                             .addOnFailureListener(
                                                     new OnFailureListener() {
                                                         @Override
-                                                        public void onFailure(@NonNull Exception e) {
+                                                        public void onFailure(@androidx.annotation.NonNull Exception e) {
                                                             // Task failed with an exception
                                                             // ...
-                                                            Log.d(TAG, "visionDetector onFailure: " + e.getMessage());
+                                                            android.util.Log.d(TAG, "visionDetector onFailure: " + e.getMessage());
                                                         }
                                                     });
                         }
@@ -329,7 +369,7 @@ public class TouchImageView extends AppCompatImageView {
                     }
                 }catch (Exception e){
                     e.printStackTrace();
-                    Bundle bundle = new Bundle();
+                    android.os.Bundle bundle = new android.os.Bundle();
                     mFirebaseAnalytics.logEvent("EXCEPTION_onPreDraw", bundle);
                 }
                 return true;    //note, that "true" is important, since you don't want drawing pass to be canceled
@@ -378,8 +418,8 @@ public class TouchImageView extends AppCompatImageView {
             private int mode;
             private boolean updateTouchState = true;
             private boolean cancelZoomNav = false, startCursorMode = false, endCursorMode = false, leftRulerPointMode = false, rightRulerPointMode = false;
-            private List<Integer> pointerIds = new ArrayList<>(40);;
-            private SparseArray<PointF> startPoints = new SparseArray<>();
+            private java.util.List<Integer> pointerIds = new ArrayList<>(40);;
+            private android.util.SparseArray<PointF> startPoints = new android.util.SparseArray<>();
 
             private PointF getTranslatedPoint(float touchX, float touchY){
                 PointF lPoint = new PointF(touchX, touchY);
@@ -413,7 +453,7 @@ public class TouchImageView extends AppCompatImageView {
                // Log.d(TAG, "checkTouchPoint: not match zoomedTouchX "+ zoomedTouchX +" zoomedTouchY "+zoomedTouchY + " lPoint "+lPoint.toString());
                 return false;
             }
-            private void evaluateTouchState(MotionEvent event, Matrix matrix) {
+            private void evaluateTouchState(MotionEvent event, android.graphics.Matrix matrix) {
                 //Log.d(TAG, "ter evaluateTouchState: ");
                 // Update the mode
                 int touchCount = getTouchCount();
@@ -430,19 +470,19 @@ public class TouchImageView extends AppCompatImageView {
             }
 
             @Override
-            public boolean onTouch(View view, final MotionEvent event) {
+            public boolean onTouch(android.view.View view, final MotionEvent event) {
               //  Log.d(TAG, "onTouch: startCursorPoint "+startCursorPoint.toString()+" endCursorPoint "+endCursorPoint.toString());
                 ImageView imageView;
                 Integer pointerId;
                 try {
                     imageView = (ImageView) view;
                 } catch (ClassCastException e) {
-                    Bundle bundle = new Bundle();
+                    android.os.Bundle bundle = new android.os.Bundle();
                     mFirebaseAnalytics.logEvent("EXCEPTION_ClassCastException", bundle);
                     throw new IllegalStateException("View must be an instance of ImageView", e);
                 }
                 // Get the matrix
-                Matrix matrix = imageView.getImageMatrix();
+                android.graphics.Matrix matrix = imageView.getImageMatrix();
                 //Log.d(TAG, "onTouch: ");
                 //Log.d(TAG, "zxc onTouch: " + event.getRawX() + " ; " + event.getX());
                 int actionMasked = event.getActionMasked();
@@ -603,8 +643,8 @@ public class TouchImageView extends AppCompatImageView {
                 final float[] values = new float[9];
                 matrix.getValues(values);
 
-                float transX = values[Matrix.MTRANS_X];
-                float transY = values[Matrix.MTRANS_Y];
+                float transX = values[android.graphics.Matrix.MTRANS_X];
+                float transY = values[android.graphics.Matrix.MTRANS_Y];
                 //Log.d(TAG, "hfdr onTouch: transY "+transY+" MSCALE_X "+values[Matrix.MSCALE_X]+" MSKEW_X "+values[Matrix.MSKEW_X]);
 
                 //Log.d(TAG, "fgh onTouch: lscaledImageWidth " + lscaledImageWidth + " loriginalImageWidth " + loriginalImageWidth);
@@ -712,9 +752,9 @@ public class TouchImageView extends AppCompatImageView {
                 try {
                     gestureDetector.onTouchEvent(event);
                 }catch (Exception e){
-                    Log.d(TAG, "onTouch: gestureDetector.onTouchEvent(event);");
+                    android.util.Log.d(TAG, "onTouch: gestureDetector.onTouchEvent(event);");
                     e.printStackTrace();
-                    Bundle bundle = new Bundle();
+                    android.os.Bundle bundle = new android.os.Bundle();
                     mFirebaseAnalytics.logEvent("EXCEPTION_onTouchEvent", bundle);
                 }
                // Log.d(TAG, "zxc onTouch: " + event.getRawX() + " ; " + event.getX());
@@ -723,7 +763,7 @@ public class TouchImageView extends AppCompatImageView {
                         super.onTouch(view, event);
                     }catch (Exception e){
                         e.printStackTrace();
-                        Bundle bundle = new Bundle();
+                        android.os.Bundle bundle = new android.os.Bundle();
                         mFirebaseAnalytics.logEvent("EXCEPTION_onTouch", bundle);
                         /*ViewGroup.LayoutParams lParams = imageView.getLayoutParams();
                         OnCustomEventListener mlListener = mListener;
@@ -740,15 +780,15 @@ public class TouchImageView extends AppCompatImageView {
                             Log.d(TAG, "onTouch: setImageMatrix ");
                             TouchImageView.super.setImageMatrix(new Matrix());
                         }*/
-                        TouchImageView.super.setImageMatrix(new Matrix());
+                        TouchImageView.super.setImageMatrix(new android.graphics.Matrix());
                         TouchImageView.super.invalidate();
 
                         Canvas canvas = new Canvas(unChangedOriginalBitmap);
                         Paint mPaint = new Paint();
                         mPaint.setColor(Color.RED);
-                        Path mPath = new Path();
+                        android.graphics.Path mPath = new android.graphics.Path();
                         RectF mRectF = new RectF(60, 60, loriginalImageWidth - 60, loriginalImageHeight - 60);
-                        mPath.addRect(mRectF, Path.Direction.CW);
+                        mPath.addRect(mRectF, android.graphics.Path.Direction.CW);
                         mPaint.setStrokeWidth(80);
                         mPaint.setStyle(Paint.Style.STROKE);
                         canvas.drawPath(mPath, mPaint);
@@ -772,9 +812,9 @@ public class TouchImageView extends AppCompatImageView {
         //TouchImageView.super.setOnTouchListener(new ImageMatrixTouchHandler(mContext));
     }
 
-    public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+    public static <T> java.util.function.Predicate<T> distinctByKey(java.util.function.Function<? super T, ?> keyExtractor) {
         if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
-            Set<Object> seen = ConcurrentHashMap.newKeySet();
+            java.util.Set<Object> seen = ConcurrentHashMap.newKeySet();
             return t -> seen.add(keyExtractor.apply(t));
         }
         return null;
@@ -818,8 +858,8 @@ public class TouchImageView extends AppCompatImageView {
         boolean changeStartCursorPoint = true, changeEndCursorPoint = true, changeLeftMarginPoint = true, changeRightMarginPoint = true;
         textSelectionInProgress = true;
         //List<PointF> allWordStartPoints = new ArrayList<>();
-        List<Integer> allWordTopPositions = new ArrayList<>();
-        List<Integer> allWordBottomPositions = new ArrayList<>();
+        java.util.List<Integer> allWordTopPositions = new ArrayList<>();
+        java.util.List<Integer> allWordBottomPositions = new ArrayList<>();
         //List<Float> allWordTopPositionsUnique = new ArrayList<>();
         //List<PointF> allWordEndPoints = new ArrayList<>();
         if(mstartCursorPoint == null){
@@ -885,7 +925,7 @@ public class TouchImageView extends AppCompatImageView {
         final Float endTop = mendCursorPoint.y;
         final PointF fstartCursorPoint = mstartCursorPoint;
         final PointF fendCursorPoint = mendCursorPoint;
-        List<VisionWordModel> filteredVisionWordList = visionTextRectanglesSimplified;
+        java.util.List<VisionWordModel> filteredVisionWordList = visionTextRectanglesSimplified;
         if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
             if(zoomedVisionTextRectangles.size() <= 0 && visionTextRectanglesSimplified.size() >= 1){
                 zoomedVisionTextRectangles = visionTextRectanglesSimplified;
@@ -910,7 +950,7 @@ public class TouchImageView extends AppCompatImageView {
         //selectedVisionTextRectangles.clear();
         //selectedVisionText.clear();
         // TODO: get selected text, top word line & bottom word line for innerCursorAreaRect
-        List<VisionWordModel> filteredVisionWordListUnique = new ArrayList<>();
+        java.util.List<VisionWordModel> filteredVisionWordListUnique = new ArrayList<>();
         RectF innerCursorAreaRect = new RectF(0,0,0,0);
         /*if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
             filteredVisionWordListUnique = filteredVisionWordList.stream()
@@ -1044,7 +1084,7 @@ public class TouchImageView extends AppCompatImageView {
                 return c;
             }
         });*/
-        List<String> selectedVisionText = new ArrayList<>();
+        java.util.List<String> selectedVisionText = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
             selectedVisionText =
                     selectedVisionTextRectanglesSimplified.stream()
@@ -1205,7 +1245,7 @@ public class TouchImageView extends AppCompatImageView {
             originalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
         }
         Canvas canvas = new Canvas(originalBitmap);
-        List<VisionWordModel> filteredVisionWordList = visionTextRectanglesSimplified;
+        java.util.List<VisionWordModel> filteredVisionWordList = visionTextRectanglesSimplified;
         if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
             if(zoomedVisionTextRectangles.size() <= 0 && visionTextRectanglesSimplified.size() >= 1){
                 zoomedVisionTextRectangles = visionTextRectanglesSimplified;
@@ -1312,7 +1352,7 @@ public class TouchImageView extends AppCompatImageView {
                         }
                     });
                 }
-                List<String> selectedVisionText = new ArrayList<>();
+                java.util.List<String> selectedVisionText = new ArrayList<>();
                 if (Build.VERSION.SDK_INT >= VERSION_CODES.N) {
                     selectedVisionText =
                             selectedVisionTextRectanglesSimplified.stream()
@@ -1370,8 +1410,8 @@ public class TouchImageView extends AppCompatImageView {
         PointF point2_draw = new PointF(startCursorPoint.x -threshold, startCursorPoint.y);
         PointF point3_draw = new PointF(startCursorPoint.x, startCursorPoint.y-threshold);
 
-        Path path = new Path();
-        path.setFillType(Path.FillType.EVEN_ODD);
+        android.graphics.Path path = new android.graphics.Path();
+        path.setFillType(android.graphics.Path.FillType.EVEN_ODD);
         path.moveTo(point1_draw.x,point1_draw.y);
         path.lineTo(point2_draw.x,point2_draw.y);
         path.lineTo(point3_draw.x,point3_draw.y);
@@ -1384,8 +1424,8 @@ public class TouchImageView extends AppCompatImageView {
         point2_draw = new PointF(endCursorPoint.x +threshold, endCursorPoint.y);
         point3_draw = new PointF(endCursorPoint.x, endCursorPoint.y+threshold);
 
-        path = new Path();
-        path.setFillType(Path.FillType.EVEN_ODD);
+        path = new android.graphics.Path();
+        path.setFillType(android.graphics.Path.FillType.EVEN_ODD);
         path.moveTo(point1_draw.x,point1_draw.y);
         path.lineTo(point2_draw.x,point2_draw.y);
         path.lineTo(point3_draw.x,point3_draw.y);
@@ -1397,7 +1437,7 @@ public class TouchImageView extends AppCompatImageView {
         canvas.drawCircle(endCursorPoint.x +radius, endCursorPoint.y+radius, radius, paint);
     }
 
-    private boolean checkSameLineWords(List<Integer> allWordTopPositions, int top) {
+    private boolean checkSameLineWords(java.util.List<Integer> allWordTopPositions, int top) {
         // allWordBottomPositions[283, 281,
         int threshold = minWordHeight;
         for (int i=0; i<=threshold; i++) {

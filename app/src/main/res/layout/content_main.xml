@@ -95,7 +95,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
-                            android:background="@drawable/marker"
+                            android:background="@drawable/markerp"
                             />
 
                         <TextView
@@ -132,12 +132,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="0dp"
                             android:layout_weight="1"
-                            android:background="@drawable/marker"
+                            android:background="@drawable/markerh"
                             />
 
                     </LinearLayout>
 
                     <ImageView
+                        android:id="@+id/note_iv"
                         android:src="@drawable/ic_note"
                         android:layout_width="0dp"
                         android:layout_gravity="center"

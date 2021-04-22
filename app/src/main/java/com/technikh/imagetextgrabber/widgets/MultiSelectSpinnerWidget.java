@@ -18,7 +18,6 @@ package com.technikh.imagetextgrabber.widgets;
 
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -126,7 +125,7 @@ public class MultiSelectSpinnerWidget extends AppCompatSpinner implements OnMult
      * Sets the options for this spinner.
      * @param items
      */
-    public void setItems(List<String> items) {
+    public void setItems(java.util.List<String> items) {
         _items = items.toArray(new String[items.size()]);
         _selection = new boolean[_items.length];
         
@@ -151,7 +150,7 @@ public class MultiSelectSpinnerWidget extends AppCompatSpinner implements OnMult
      * Sets the selected options based on a list of string.
      * @param selection
      */
-    public void setSelection(List<String> selection) {
+    public void setSelection(java.util.List<String> selection) {
         for (String sel : selection) {
             for (int j = 0; j < _items.length; ++j) {
                 if (_items[j].equals(sel)) {
@@ -180,8 +179,8 @@ public class MultiSelectSpinnerWidget extends AppCompatSpinner implements OnMult
      * Returns a list of strings, one for each selected item.
      * @return
      */
-    public List<String> getSelectedStrings() {
-        List<String> selection = new LinkedList<String>();
+    public java.util.List<String> getSelectedStrings() {
+        java.util.List<String> selection = new LinkedList<String>();
         for (int i = 0; i < _items.length; ++i) {
             if (_selection[i]) {
                 selection.add(_items[i]);
@@ -194,8 +193,8 @@ public class MultiSelectSpinnerWidget extends AppCompatSpinner implements OnMult
      * Returns a list of positions, one for each selected item.
      * @return
      */
-    public List<Integer> getSelectedIndicies() {
-        List<Integer> selection = new LinkedList<Integer>();
+    public java.util.List<Integer> getSelectedIndicies() {
+        java.util.List<Integer> selection = new LinkedList<Integer>();
         for (int i = 0; i < _items.length; ++i) {
             if (_selection[i]) {
                 selection.add(i);

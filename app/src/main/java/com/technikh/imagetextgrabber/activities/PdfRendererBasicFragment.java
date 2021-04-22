@@ -19,34 +19,25 @@ package com.technikh.imagetextgrabber.activities;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.room.Room;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
@@ -56,10 +47,6 @@ import com.github.dhaval2404.colorpicker.listener.ColorListener;
 import com.github.dhaval2404.colorpicker.model.ColorSwatch;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.technikh.imagetextgrabber.R;
-import com.technikh.imagetextgrabber.activities.MainActivity;
-import com.technikh.imagetextgrabber.room.MyDatabase;
-import com.technikh.imagetextgrabber.room.dao.HighlightDataAccess;
-import com.technikh.imagetextgrabber.room.dao.ImagesDataAccess;
 import com.technikh.imagetextgrabber.room.entity.Highlights;
 import com.technikh.imagetextgrabber.widgets.TouchImageView;
 
@@ -68,11 +55,11 @@ import static com.technikh.imagetextgrabber.activities.MainActivity.db;
 
 /**
  * This fragment has a big {@ImageView} that shows PDF pages, and 2
- * {@link android.widget.Button}s to move between pages. We use a
- * {@link android.graphics.pdf.PdfRenderer} to render PDF pages as
- * {@link android.graphics.Bitmap}s.
+ * {@link Button}s to move between pages. We use a
+ * {@link PdfRenderer} to render PDF pages as
+ * {@link Bitmap}s.
  */
-public class PdfRendererBasicFragment extends AppCompatActivity implements View.OnClickListener {
+public class PdfRendererBasicFragment extends AppCompatActivity implements android.view.View.OnClickListener {
 
     /**
      * Key string for saving the state of current page index.
@@ -95,7 +82,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     private ParcelFileDescriptor mFileDescriptor;
 
     /**
-     * {@link android.graphics.pdf.PdfRenderer} to render the PDF.
+     * {@link PdfRenderer} to render the PDF.
      */
     private PdfRenderer mPdfRenderer;
 
@@ -105,7 +92,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     private PdfRenderer.Page mCurrentPage;
 
     /**
-     * {@link android.widget.ImageView} that shows a PDF page as a {@link android.graphics.Bitmap}
+     * {@link ImageView} that shows a PDF page as a {@link Bitmap}
      */
     public TouchImageView mImageView;
     private RelativeLayout imageParentLayout;
@@ -113,12 +100,12 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     EditText et_image_text;
 
     /**
-     * {@link android.widget.Button} to move to the previous page.
+     * {@link Button} to move to the previous page.
      */
     private Button mButtonPrevious;
 
     /**
-     * {@link android.widget.Button} to move to the next page.
+     * {@link Button} to move to the next page.
      */
     private Button mButtonNext;
 
@@ -126,16 +113,16 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
      * PDF page index
      */
     private int mPageIndex;
-    private HighlightDataAccess markerDao;
+    private com.technikh.imagetextgrabber.room.dao.HighlightDataAccess markerDao;
     private MaterialColorPickerDialog colorPickerDialog;
-    private ImagesDataAccess imagesDao;
+    private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess imagesDao;
     private ArrayList<String> colorArray;
 
     public PdfRendererBasicFragment() {
     }
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(@androidx.annotation.Nullable android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.fragment_pdf_renderer_basic);
 
@@ -155,8 +142,8 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
         colorArray = new ArrayList<>();
         colorArray.add("#f6e58d");
 
-        db= Room.databaseBuilder(getApplicationContext(),
-                MyDatabase.class, DBNAME).build();
+        db= androidx.room.Room.databaseBuilder(getApplicationContext(),
+                com.technikh.imagetextgrabber.room.MyDatabase.class, DBNAME).build();
 
 
         markerDao=db.getHighlightsDao();
@@ -198,9 +185,9 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
 
                 }).build();
 
-        findViewById(R.id.hl).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.hl).setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 new Thread(){
                     @Override
                     public void run() {
@@ -227,9 +214,9 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
             }
         });
 
-        findViewById(R.id.a_r).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.a_r).setOnClickListener(new android.view.View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(android.view.View view) {
                 new AlertDialog.Builder(PdfRendererBasicFragment.this)
                         .setTitle("")
                         .setMessage("")
@@ -323,10 +310,10 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
 
 
 
-        Bundle args = getIntent().getBundleExtra("bundle");
+        android.os.Bundle args = getIntent().getBundleExtra("bundle");
         if(args != null) {
             pdfFileUri = Uri.parse(args.getString("uri", ""));
-            Log.d(TAG, "onViewCreated: pdfFileUri " + pdfFileUri);
+            android.util.Log.d(TAG, "onViewCreated: pdfFileUri " + pdfFileUri);
         }
 
         mPageIndex = 0;
@@ -346,7 +333,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
             //showPage(mPageIndex, null);
         } catch (IOException e) {
             e.printStackTrace();
-            Bundle bundle = new Bundle();
+            android.os.Bundle bundle = new android.os.Bundle();
             mFirebaseAnalytics.logEvent("EXCEPTION_onStart", bundle);
             Toast.makeText(this, "Error! " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
@@ -361,7 +348,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
         try {
             closeRenderer();
         } catch (IOException e) {
-            Bundle bundle = new Bundle();
+            android.os.Bundle bundle = new android.os.Bundle();
             mFirebaseAnalytics.logEvent("EXCEPTION_onStop", bundle);
             e.printStackTrace();
         }
@@ -369,7 +356,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(android.os.Bundle outState) {
         super.onSaveInstanceState(outState);
         if (null != mCurrentPage) {
             outState.putInt(STATE_CURRENT_PAGE_INDEX, mCurrentPage.getIndex());
@@ -377,7 +364,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     }
 
     /**
-     * Sets up a {@link android.graphics.pdf.PdfRenderer} and related resources.
+     * Sets up a {@link PdfRenderer} and related resources.
      */
     private void openRenderer(Context context) throws IOException {
         mContext = context;
@@ -388,7 +375,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
                 // the cache directory.
                 //InputStream asset = context.getAssets().open(FILENAME);
                 //Uri myUri = Uri.parse("content://com.android.providers.downloads.documents/document/4406");
-                InputStream asset = context.getContentResolver().openInputStream(pdfFileUri);
+                java.io.InputStream asset = context.getContentResolver().openInputStream(pdfFileUri);
                 FileOutputStream output = new FileOutputStream(file);
                 final byte[] buffer = new byte[1024];
                 int size;
@@ -411,7 +398,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     public String getFileName(Uri uri) {
         String result = null;
         if (uri.getScheme().equals("content")) {
-            Cursor cursor = mContext.getContentResolver().query(uri, null, null, null, null);
+            android.database.Cursor cursor = mContext.getContentResolver().query(uri, null, null, null, null);
             try {
                 if (cursor != null && cursor.moveToFirst()) {
                     result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
@@ -427,14 +414,14 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
                 result = result.substring(cut + 1);
             }
         }
-        Log.d(TAG, "getFileName: result "+result);
+        android.util.Log.d(TAG, "getFileName: result "+result);
         return result;
     }
 
     /**
-     * Closes the {@link android.graphics.pdf.PdfRenderer} and related resources.
+     * Closes the {@link PdfRenderer} and related resources.
      *
-     * @throws java.io.IOException When the PDF file cannot be closed.
+     * @throws IOException When the PDF file cannot be closed.
      */
     private void closeRenderer() throws IOException {
         if (null != mCurrentPage) {
@@ -462,17 +449,17 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
             }catch (Exception e){
                 // java.lang.IllegalStateException: Already closed
                 e.printStackTrace();
-                Bundle bundle = new Bundle();
+                android.os.Bundle bundle = new android.os.Bundle();
                 mFirebaseAnalytics.logEvent("EXCEPTION_mCurrentPage_Close", bundle);
             }
         }
         // Use `openPage` to open a specific page in PDF.
         mCurrentPage = mPdfRenderer.openPage(index);
         // Important: the destination bitmap must be ARGB (not RGB).
-        Log.d(TAG, "showPage: getResources().getDisplayMetrics().widthPixels "+ getResources().getDisplayMetrics().widthPixels);
-        Log.d(TAG, "showPage: getResources().getDisplayMetrics().heightPixels "+ getResources().getDisplayMetrics().heightPixels);
+        android.util.Log.d(TAG, "showPage: getResources().getDisplayMetrics().widthPixels "+ getResources().getDisplayMetrics().widthPixels);
+        android.util.Log.d(TAG, "showPage: getResources().getDisplayMetrics().heightPixels "+ getResources().getDisplayMetrics().heightPixels);
         float densityQuality = getResources().getDisplayMetrics().heightPixels/getResources().getDisplayMetrics().widthPixels;
-        Log.d(TAG, "showPage: densityQuality "+densityQuality);
+        android.util.Log.d(TAG, "showPage: densityQuality "+densityQuality);
         Bitmap bitmap = Bitmap.createBitmap(
                 (int)(3 * mCurrentPage.getWidth()),
                 (int)(3 * mCurrentPage.getHeight()),
@@ -486,7 +473,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
         );
         Bitmap bitmap = Bitmap.createBitmap(mCurrentPage.getWidth(), mCurrentPage.getHeight(),
                 Bitmap.Config.ARGB_8888);*/
-        Log.d(TAG, "showPage: after bitmap generated, before render");
+        android.util.Log.d(TAG, "showPage: after bitmap generated, before render");
         // Here, we render the page onto the Bitmap.
         // To render a portion of the page, use the second and third parameter. Pass nulls to get
         // the default result.
@@ -533,7 +520,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
     }
 
     @Override
-    public void onClick(View view) {
+    public void onClick(android.view.View view) {
         switch (view.getId()) {
             case R.id.previous: {
                 mImageView.resetOCR();
@@ -555,7 +542,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
         @Override
         public Object instantiateItem(ViewGroup collection, int position) {
             LayoutInflater inflater = LayoutInflater.from(mContext);
-            View layout = (View) inflater.inflate(R.layout.row_pager_image, collection, false);
+            android.view.View layout = (android.view.View) inflater.inflate(R.layout.row_pager_image, collection, false);
             collection.addView(layout);
 
             TouchImageView ivImage = layout.findViewById(R.id.ivImage);
@@ -577,7 +564,7 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements View.
         }
 
         @Override
-        public boolean isViewFromObject(View view, Object object) {
+        public boolean isViewFromObject(android.view.View view, Object object) {
             return view == object;
         }
 
