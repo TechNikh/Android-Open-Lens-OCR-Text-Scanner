@@ -1269,6 +1269,7 @@ public class TouchImageView extends AppCompatImageView {
 
                 // Toggle
                 if(selectedVisionTextRectanglesSimplified.contains(visionWordModel)){
+
                     Toast.makeText(mContext, " removed "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
 
                     // Remove - draw Yellow
