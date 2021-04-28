@@ -7,6 +7,7 @@
 package com.technikh.imagetextgrabber.activities;
 
 import android.app.AlertDialog;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -99,6 +100,13 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
+
+        //Toast.makeText(getApplicationContext(),Wiki.getTextExtract("Stack Overflow"),Toast.LENGTH_LONG).show();
+
+
 
         ivNote=findViewById(R.id.note_iv);
         ivNote.setOnClickListener(new android.view.View.OnClickListener() {

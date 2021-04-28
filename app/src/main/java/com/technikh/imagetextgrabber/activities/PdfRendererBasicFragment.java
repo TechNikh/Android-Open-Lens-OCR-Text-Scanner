@@ -523,15 +523,15 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements andro
     public void onClick(android.view.View view) {
         switch (view.getId()) {
             case R.id.previous: {
-                mImageView.resetOCR();
+                //mImageView.resetOCR();
                 // Move to the previous page
-                //showPage(mCurrentPage.getIndex() - 1, null);
+                showPage(mCurrentPage.getIndex() - 1, null);
                 break;
             }
             case R.id.next: {
-                mImageView.resetOCR();
+                //mImageView.resetOCR();
                 // Move to the next page
-                //showPage(mCurrentPage.getIndex() + 1, null);
+                showPage(mCurrentPage.getIndex() + 1, null);
                 break;
             }
         }

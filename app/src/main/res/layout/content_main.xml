@@ -78,7 +78,7 @@
                     android:layout_height="0dp"
                     android:orientation="horizontal"
                     android:layout_weight="0.5"
-                    android:weightSum="10"
+                    android:weightSum="10.1"
                     >
                     <LinearLayout
                         android:layout_marginVertical="7dp"
@@ -110,6 +110,40 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:orientation="vertical"
+                        android:weightSum="2"
+                        android:layout_height="match_parent"
+                        android:layout_weight="0.1">
+
+                        <View
+
+                            android:layout_weight="1"
+                            android:paddingVertical="3dp"
+                            android:background="#555555"
+                            android:layout_width="1dp"
+                            android:layout_gravity="center"
+                            android:layout_height="match_parent"
+                            android:layout_marginVertical="3dp"
+                            />
+                        <View
+
+                            android:layout_marginVertical="3dp"
+                            android:layout_weight="1"
+                            android:paddingVertical="3dp"
+                            android:background="#555555"
+                            android:layout_width="1dp"
+                            android:layout_gravity="center"
+                            android:layout_height="match_parent"
+                            />
+
+
+                    </LinearLayout>
+
+
+
+
+                    <LinearLayout
                         android:layout_marginVertical="7dp"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
@@ -125,6 +159,10 @@
                             android:layout_weight="1"
                             android:background="@drawable/marker"
                             />
+
+
+
+
 
                         <TextView
                             android:id="@+id/highlight"
@@ -164,13 +202,126 @@
 
                 </LinearLayout>
                 <LinearLayout
-                    android:background="@color/blue_grey_600"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:orientation="vertical"
+                    android:orientation="horizontal"
                     android:layout_weight="1"
+                    android:weightSum="2"
 
                     >
+                    <LinearLayout
+                        android:padding="10dp"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:layout_weight="1"
+
+
+                        android:weightSum="6"
+                        >
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:orientation="horizontal"
+                            android:layout_weight="1"
+
+
+                            >
+
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Dictionary"
+
+                                />
+
+
+
+
+
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:background="@drawable/conered_wikirect"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+
+                            android:layout_weight="4"/>
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:orientation="horizontal"
+                            android:layout_weight="1"
+
+
+                            >
+
+
+                        </LinearLayout>
+
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:padding="10dp"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:layout_weight="1"
+
+
+                        android:weightSum="6"
+                        >
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:orientation="horizontal"
+                            android:layout_weight="1"
+
+
+                            >
+
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Wikipedia"
+
+                                />
+
+
+
+
+
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:background="@drawable/conered_wikirect"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+
+                            android:layout_weight="4"/>
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:orientation="horizontal"
+                            android:layout_weight="1"
+
+
+                            >
+
+
+                        </LinearLayout>
+
+
+                    </LinearLayout>
 
 
                 </LinearLayout>
