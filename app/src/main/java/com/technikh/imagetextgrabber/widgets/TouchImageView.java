@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
@@ -23,6 +24,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ViewTreeObserver;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -43,8 +45,10 @@ import com.technikh.imagetextgrabber.models.VisionWordModel;
 import com.technikh.imagetextgrabber.room.entity.Images;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -54,51 +58,88 @@ public class TouchImageView extends AppCompatImageView {
 
     private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess dao;
 
-    public void highlight(String s){
+    public void highlight(final String s){
 
         try {
             dao = MainActivity.db.getImagesDao();
 
+            String sCopy=s;
+            if(!sCopy.equals("#00000000")){
+                sCopy="#CC" + sCopy.subSequence(1, sCopy.length());
+            }
             Paint paint = new Paint();
             paint.setStyle(Paint.Style.FILL);
             paint.setStrokeWidth(2);
             paint.setPathEffect(new DashPathEffect(new float[]{2, 2}, 0));
-            paint.setColor(Color.parseColor("#CC" + s.subSequence(1, s.length())));
+            paint.setColor(Color.parseColor(sCopy));
             paint.setAntiAlias(true);
 
             //canvas.drawBitmap(originalBitmap, 0, 0, paint);
             //canvas.drawText("Testing...", 10, 10, paint);
 
-            final Bitmap originalBitmap;
+
         /*if(longPressMode){
             originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
         }else {*/
-            originalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
             //}
+            final Bitmap originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
+
             Canvas canvas = new Canvas(originalBitmap);
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.DST_OUT);
             //Toast.makeText(getContext().getApplicationContext(),selectedVisionTextRectanglesSimplified.size()+"",Toast.LENGTH_LONG).show();
             for (VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
                 //Toast.makeText(getContext().getApplicationContext(),"in",Toast.LENGTH_LONG).show();
                 canvas.drawRect(visionWordModel.mrect, paint);
 
+
                 //write rect to images table
                 new Thread() {
                     @Override
                     public void run() {
-                        dao.insert(new Images(visionWordModel.mrect.left,
+                        List<Images> images=dao.getDetails(
                                 visionWordModel.mrect.top,
-                                visionWordModel.mrect.right,
                                 visionWordModel.mrect.bottom,
-                                visionWordModel.mtext,
-                                "#CC" + s.subSequence(1, s.length()),
-                                MainActivity.currentUri,
-                                ""
-                        ));
+                                visionWordModel.mrect.left,
+                                visionWordModel.mrect.right,
+
+                                MainActivity.currentUri
+                        );
+                        String sCopy=s;
+                        if(!sCopy.equals("#00000000")){
+                            sCopy="#CC" + sCopy.subSequence(1, sCopy.length());
+                        }
+                        if(images.isEmpty()){
+                            dao.insert(new Images(visionWordModel.mrect.left,
+                                    visionWordModel.mrect.top,
+                                    visionWordModel.mrect.right,
+                                    visionWordModel.mrect.bottom,
+                                    visionWordModel.mtext,
+                                    sCopy,
+                                    MainActivity.currentUri,
+                                    ""
+                            ));
+                        }
+                        else {
+
+                            try {
+                                Images images1 = images.get(0);
+                                images1.color = sCopy;
+                                dao.insert(images1);
+                            }
+                            catch (Error e){
+                                Toast.makeText(getContext().getApplicationContext(),e.toString(),Toast.LENGTH_LONG)
+                                        .show();
+                            }
+
+
+                        }
+
 
                     }
                 }.start();
 
             }
+            this.setImageBitmap(originalBitmap);
         }catch (Exception e){
             Toast.makeText(getContext(),e.toString(),Toast.LENGTH_LONG).show();
         }
@@ -123,26 +164,46 @@ public class TouchImageView extends AppCompatImageView {
             }
             else if(selectedVisionTextRectanglesSimplified.size()==1) {
                 for (final VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
-                    final android.graphics.drawable.Drawable d=getResources().getDrawable(R.drawable.ic_note);
-                    final int left=visionWordModel.mrect.right;
-                    final int top=visionWordModel.mrect.bottom;
-                    final int right=visionWordModel.mrect.right+((visionWordModel.mrect.right-visionWordModel.mrect.left)/2);
-                    final int bottom=visionWordModel.mrect.bottom-(visionWordModel.mrect.top-visionWordModel.mrect.bottom);
-                    d.setBounds(left,top,right,bottom);
 
-                    d.draw(canvas);
 
                     new Thread() {
                         @Override
                         public void run() {
 
+                            List<Images> images=dao.getDetails(
+                                    visionWordModel.mrect.top,
+                                    visionWordModel.mrect.bottom,
+                                    visionWordModel.mrect.left,
+                                    visionWordModel.mrect.right,
 
-                            dao.insert(new Images(left,top,right,bottom,
-                                    visionWordModel.mtext,
-                                    "#00000000",
-                                    MainActivity.currentUri,
-                                    note
-                            ));
+                                    MainActivity.currentUri
+                            );
+                            if(images.isEmpty()){
+                                dao.insert(new Images(visionWordModel.mrect.left,
+                                        visionWordModel.mrect.top,
+                                        visionWordModel.mrect.right,
+                                        visionWordModel.mrect.bottom,
+                                        visionWordModel.mtext,
+                                        "#00000000",
+                                        MainActivity.currentUri,
+                                        note
+                                ));
+                            }
+                            else {
+
+                                try {
+                                    Images images1 = images.get(0);
+                                    images1.note = note;
+                                    dao.insert(images1);
+                                }
+                                catch (Error e){
+                                    Toast.makeText(getContext().getApplicationContext(),e.toString(),Toast.LENGTH_LONG)
+                                            .show();
+                                }
+
+
+                            }
+
 
 
 
@@ -1215,6 +1276,53 @@ public class TouchImageView extends AppCompatImageView {
     }
 
     private void selectWordOnTouch(int touchX, int touchY, boolean longPressMode) {
+        final String[] color = new String[1];
+        final String[] note = new String[1];
+        try {
+
+
+
+
+
+            if(selectedVisionTextRectanglesSimplified.size()==1) {
+                for (final VisionWordModel visionWordModel : selectedVisionTextRectanglesSimplified) {
+
+
+                    new Thread() {
+                        @Override
+                        public void run() {
+
+                            dao = MainActivity.db.getImagesDao();
+
+                            List<Images>image=dao.getDetails(
+
+                                    visionWordModel.mrect.top,
+
+                                    visionWordModel.mrect.bottom,
+                                    visionWordModel.mrect.left,
+                                    visionWordModel.mrect.right,
+                                    MainActivity.currentUri
+                            );
+
+                            color[0] =image.get(0).color;
+                            note[0] =image.get(0).note;
+
+
+
+
+
+
+                        }
+                    }.start();
+
+                }
+            }
+
+        }catch (Exception e){
+            Toast.makeText(mContext,e.toString(),Toast.LENGTH_LONG).show();
+        }
+
+
         boolean foundWord = false;
         int zoomedTouchX = zoomedOffsetX+(int)(touchX/widthZoomFactor);
         int zoomedTouchY = zoomedOffsetY+(int)(touchY/heightZoomFactor);
@@ -1397,6 +1505,9 @@ public class TouchImageView extends AppCompatImageView {
             paintCursors(canvas);
         }
         //Log.d(TAG, "onLongPress: visionTextRectangles size "+visionTextRectangles.size());
+
+
+
     }
 
     private void paintCursors(Canvas canvas){

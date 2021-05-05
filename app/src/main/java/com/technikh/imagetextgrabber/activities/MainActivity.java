@@ -20,6 +20,8 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.PaintDrawable;
 import android.net.Uri;
 import android.os.Build;
 
@@ -27,10 +29,6 @@ import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
-import com.github.dhaval2404.colorpicker.ColorPickerDialog;
-import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog;
-import com.github.dhaval2404.colorpicker.listener.ColorListener;
-import com.github.dhaval2404.colorpicker.model.ColorSwatch;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
@@ -45,6 +43,7 @@ import com.technikh.imagetextgrabber.widgets.TouchImageView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.text.TextUtils;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -52,17 +51,17 @@ import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity{
-    private MaterialColorPickerDialog colorPickerDialog;
 
     int SELECT_PICTURE = 101;
     int SELECT_PDF = 102;
     TouchImageView ivImage;
-    ImageView ivNote;
+    TextView saveNoteTV;
     RelativeLayout imageParentLayout;
     EditText et_image_text;
     private SlidingUpPanelLayout mLayout;
@@ -81,6 +80,7 @@ public class MainActivity extends AppCompatActivity{
     private ArrayList<String> colorArray;
     private GridView gridView;
     private  AlertDialog alertDialog;
+    private Integer recentHighlight=null;
 
 
     class MyVisionWordModel extends VisionWordModel{
@@ -108,33 +108,23 @@ public class MainActivity extends AppCompatActivity{
 
 
 
-        ivNote=findViewById(R.id.note_iv);
-        ivNote.setOnClickListener(new android.view.View.OnClickListener() {
+        saveNoteTV=findViewById(R.id.save_note);
+        saveNoteTV.setOnClickListener(new android.view.View.OnClickListener() {
             @Override
             public void onClick(android.view.View view) {
-                android.view.View v=getLayoutInflater().inflate(R.layout.note_et,null,false);
-                AlertDialog ad=new AlertDialog.Builder(MainActivity.this)
-                        .setView(v)
-                        .create();
 
-                EditText et=v.findViewById(R.id.et);
-                Button bt=v.findViewById(R.id.btn);
-                bt.setOnClickListener(new android.view.View.OnClickListener() {
-                    @Override
-                    public void onClick(android.view.View view) {
-                        String notes=et.getText().toString().trim();
-                        if(notes.isEmpty()){
-                            Toast.makeText(getApplicationContext(),"Please enter note",Toast.LENGTH_LONG).show();
-                        }
-                        else {
-                            ivImage.saveNote(notes);
-                            ad.dismiss();
-                        }
 
-                    }
-                });
+                EditText et=findViewById(R.id.et);
+                String notes=et.getText().toString().trim();
+                if(notes.isEmpty()){
+                    Toast.makeText(getApplicationContext(),"Please enter note",Toast.LENGTH_LONG).show();
+                }
+                else {
+                    ivImage.saveNote(notes);
+                    //ToDo:Addtoastinsavenotefunction
+                    Toast.makeText(getApplicationContext(),"Saved",Toast.LENGTH_LONG).show();
 
-                ad.show();
+                }
             }
         });
 
@@ -162,208 +152,7 @@ public class MainActivity extends AppCompatActivity{
 
 
 
-        colorPickerDialog=new MaterialColorPickerDialog
-                .Builder(this)
 
-                // Option 1: Pass Hex Color Codes
-                .setColors(colorArray)
-                .setColorSwatch(ColorSwatch.A300)
-                .setPositiveButton("OK")
-                .setNegativeButton("CANCEL")
-
-                // Option 2: Pass Hex Color Codes from string.xml
-                //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                // Option 3: Pass color array from colors.xml
-                //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                .setColorListener(new ColorListener() {
-                    @Override
-                    public void onColorSelected(int i, String s) {
-                            ivImage.highlight(s);
-                            ivImage.invalidate();
-
-                        //Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-
-                    }
-
-
-                }).build();
-
-        findViewById(R.id.highlight).setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                new Thread(){
-                    @Override
-                    public void run() {
-                        loadColors();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                //colorPickerDialog.show();
-                                gridView.setAdapter(new MyGridView(MainActivity.this));
-                                alertDialog.show();
-                            }
-                        });
-
-                    }
-                }.start();
-
-            }
-        });
-
-        findViewById(R.id.add_highlight).setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                /*new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("")
-                        .setMessage("")
-                        .setNegativeButton("ADD", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-
-                            }
-                        })
-
-
-                        .setPositiveButton("REMOVE", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                new MaterialColorPickerDialog
-                                        .Builder(MainActivity.this)
-
-                                        // Option 1: Pass Hex Color Codes
-                                        .setColors(colorArray)
-                                        .setColorSwatch(ColorSwatch.A300)
-                                        .setPositiveButton("REMOVE")
-                                        .setNegativeButton("")
-                                        .setTitle("Remove Marker")
-
-                                        // Option 2: Pass Hex Color Codes from string.xml
-                                        //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                                        // Option 3: Pass color array from colors.xml
-                                        //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                                        .setColorListener(new ColorListener() {
-                                            @Override
-                                            public void onColorSelected(int i, String s) {
-                                                Highlights h=new Highlights();
-                                                h.color=s;
-                                                new Thread() {
-                                                    @Override
-                                                    public void run() {
-                                                        markerDao.remove(h);
-                                                    }
-                                                }.start();
-                                               // colorArray.remove(s);
-
-                                            }
-
-
-                                        }).build().show();
-                            }
-                        })
-                        .create()
-                        .show();*/
-
-                new ColorPickerDialog
-                        .Builder(MainActivity.this)
-
-                        // Option 1: Pass Hex Color Codes
-
-                        // Option 2: Pass Hex Color Codes from string.xml
-                        //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                        // Option 3: Pass color array from colors.xml
-                        //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                        .setColorListener(new ColorListener() {
-                            @Override
-                            public void onColorSelected(int i, String s) {
-
-                                //colorArray.add(s);
-                                Highlights h=new Highlights();
-                                h.color=s;
-                                new Thread(){
-                                    @Override
-                                    public void run() {
-                                        markerDao.add(h);
-
-                                    }
-                                }.start();
-
-                                //Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-
-                            }
-
-
-                        }).build().show();
-            }
-        });
-
-
-        findViewById(R.id.delete_highlight).setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-
-                new Thread(){
-                    @Override
-                    public void run() {
-                        loadColors();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                new MaterialColorPickerDialog
-                                        .Builder(MainActivity.this)
-
-                                        // Option 1: Pass Hex Color Codes
-                                        .setColors(colorArray)
-                                        .setColorSwatch(ColorSwatch.A300)
-                                        .setPositiveButton("REMOVE")
-                                        .setNegativeButton("")
-                                        .setTitle("Remove Marker")
-
-                                        // Option 2: Pass Hex Color Codes from string.xml
-                                        //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                                        // Option 3: Pass color array from colors.xml
-                                        //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                                        .setColorListener(new ColorListener() {
-                                            @Override
-                                            public void onColorSelected(int i, String s) {
-                                                Highlights h=new Highlights();
-                                                h.color=s;
-                                                new Thread() {
-                                                    @Override
-                                                    public void run() {
-                                                        markerDao.remove(h);
-                                                    }
-                                                }.start();
-                                                // colorArray.remove(s);
-
-                                            }
-
-
-                                        }).build().show();
-
-                            }
-                        });
-
-                    }
-                }.start();
-
-            }
-        });
 
 
 
@@ -460,7 +249,8 @@ public class MainActivity extends AppCompatActivity{
                             .into(ivImage);
                     loadDefaultImage = false;
                 }
-            }else if (type.startsWith("application/pdf")) {
+            }
+            else if (type.startsWith("application/pdf")) {
                 Uri pdfUri = (Uri) intent.getData();
                 android.util.Log.d(TAG, "onCreate: pdfUri "+pdfUri);
                 ivImage.setVisibility(android.view.View.GONE);
@@ -523,18 +313,6 @@ public class MainActivity extends AppCompatActivity{
         });
     }
 
-    private void loadColors() {
-        colorArray.clear();
-        for(Highlights marker:markerDao.getMarkers()) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    colorArray.add(marker.color);
-                }
-            });
-
-        }
-    }
 
     private void initImageView(){
         ivImage.initOptions(imageViewSettingsModel);
@@ -673,13 +451,7 @@ public class MainActivity extends AppCompatActivity{
                                 canvas.drawRect(visionWordModel.mrect, paint);
                             }
                             else{
-                                final android.graphics.drawable.Drawable d=getResources().getDrawable(R.drawable.ic_note);
-                                final int left=visionWordModel.mrect.left;
-                                final int top=visionWordModel.mrect.top;
-                                final int right=visionWordModel.mrect.right;
-                                final int bottom=(visionWordModel.mrect.bottom);
-                                d.setBounds(left,top,right,bottom);
-                                d.draw(canvas);
+
                             }
                             if(finalI ==savedRects.size()){
                                 ivImage.invalidate();
@@ -695,6 +467,34 @@ public class MainActivity extends AppCompatActivity{
         }.start();
     }
 
+
+    public void highlightSelected(View v){
+        if(((ImageView)v).getDrawable()!=null){
+            //remove highlight and x
+            recentHighlight=v.getId();
+            ImageView iv=findViewById(recentHighlight);
+            iv.setImageDrawable(null);
+
+            ivImage.highlight("#00000000");
+            ivImage.invalidate();
+
+        }
+        else {
+            //add highlight and remove x from previous marker
+            if(recentHighlight!=null){
+                ImageView iv=findViewById(recentHighlight);
+                iv.setImageDrawable(null);
+            }
+
+            recentHighlight=v.getId();
+            ImageView iv=findViewById(recentHighlight);
+            iv.setImageDrawable(getResources().getDrawable(R.drawable.ic_clear));
+
+            ivImage.highlight(v.getTag().toString());
+            ivImage.invalidate();
+        }
+
+    }
 
 
     class MyGridView extends ArrayAdapter {
