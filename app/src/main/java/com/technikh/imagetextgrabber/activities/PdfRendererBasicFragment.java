@@ -41,10 +41,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
-import com.github.dhaval2404.colorpicker.ColorPickerDialog;
-import com.github.dhaval2404.colorpicker.MaterialColorPickerDialog;
-import com.github.dhaval2404.colorpicker.listener.ColorListener;
-import com.github.dhaval2404.colorpicker.model.ColorSwatch;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.technikh.imagetextgrabber.R;
 import com.technikh.imagetextgrabber.room.entity.Highlights;
@@ -114,7 +110,6 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements andro
      */
     private int mPageIndex;
     private com.technikh.imagetextgrabber.room.dao.HighlightDataAccess markerDao;
-    private MaterialColorPickerDialog colorPickerDialog;
     private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess imagesDao;
     private ArrayList<String> colorArray;
 
@@ -154,157 +149,6 @@ public class PdfRendererBasicFragment extends AppCompatActivity implements andro
 
 
 
-
-        colorPickerDialog=new MaterialColorPickerDialog
-                .Builder(this)
-
-                // Option 1: Pass Hex Color Codes
-                .setColors(colorArray)
-                .setColorSwatch(ColorSwatch.A300)
-                .setPositiveButton("OK")
-                .setNegativeButton("CANCEL")
-
-                // Option 2: Pass Hex Color Codes from string.xml
-                //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                // Option 3: Pass color array from colors.xml
-                //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                .setColorListener(new ColorListener() {
-                    @Override
-                    public void onColorSelected(int i, String s) {
-                        mImageView.highlight(s);
-                        mImageView.invalidate();
-
-                        //Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-
-                    }
-
-
-                }).build();
-
-        findViewById(R.id.hl).setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                new Thread(){
-                    @Override
-                    public void run() {
-                        colorArray.clear();
-                        for(Highlights marker:markerDao.getMarkers()) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    colorArray.add(marker.color);
-                                }
-                            });
-
-                        }
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                colorPickerDialog.show();
-                            }
-                        });
-
-                    }
-                }.start();
-
-            }
-        });
-
-        findViewById(R.id.a_r).setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                new AlertDialog.Builder(PdfRendererBasicFragment.this)
-                        .setTitle("")
-                        .setMessage("")
-                        .setNegativeButton("ADD", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                new ColorPickerDialog
-                                        .Builder(PdfRendererBasicFragment.this)
-
-                                        // Option 1: Pass Hex Color Codes
-
-                                        // Option 2: Pass Hex Color Codes from string.xml
-                                        //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                                        // Option 3: Pass color array from colors.xml
-                                        //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                                        .setColorListener(new ColorListener() {
-                                            @Override
-                                            public void onColorSelected(int i, String s) {
-
-                                                //colorArray.add(s);
-                                                Highlights h=new Highlights();
-                                                h.color=s;
-                                                new Thread(){
-                                                    @Override
-                                                    public void run() {
-                                                        markerDao.add(h);
-
-                                                    }
-                                                }.start();
-
-                                                //Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
-
-                                            }
-
-
-                                        }).build().show();
-                            }
-                        })
-
-
-                        .setPositiveButton("REMOVE", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                new MaterialColorPickerDialog
-                                        .Builder(PdfRendererBasicFragment.this)
-
-                                        // Option 1: Pass Hex Color Codes
-                                        .setColors(colorArray)
-                                        .setColorSwatch(ColorSwatch.A300)
-                                        .setPositiveButton("REMOVE")
-                                        .setNegativeButton("")
-                                        .setTitle("Remove Marker")
-
-                                        // Option 2: Pass Hex Color Codes from string.xml
-                                        //.setColors(getResources().getStringArray(R.array.themeColorHex))
-
-                                        // Option 3: Pass color array from colors.xml
-                                        //.setColorRes(getResources().getIntArray(R.array.themeColors))
-
-
-
-                                        .setColorListener(new ColorListener() {
-                                            @Override
-                                            public void onColorSelected(int i, String s) {
-                                                Highlights h=new Highlights();
-                                                h.color=s;
-                                                new Thread() {
-                                                    @Override
-                                                    public void run() {
-                                                        markerDao.remove(h);
-                                                    }
-                                                }.start();
-                                                // colorArray.remove(s);
-
-                                            }
-
-
-                                        }).build().show();
-                            }
-                        })
-                        .create()
-                        .show();
-            }
-        });
 
 
 
