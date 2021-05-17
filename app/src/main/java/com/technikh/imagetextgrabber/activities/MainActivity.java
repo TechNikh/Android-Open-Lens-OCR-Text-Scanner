@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity{
     TouchImageView ivImage;
     TextView saveNoteTV;
     RelativeLayout imageParentLayout;
-    EditText et_image_text;
+    public EditText et_image_text;
     private SlidingUpPanelLayout mLayout;
     private String TAG = "MainActivity";
     private String PREF_SPINNER_USER_SETTINGS = "spinner_user_settings";
@@ -76,16 +76,16 @@ public class MainActivity extends AppCompatActivity{
     private com.technikh.imagetextgrabber.room.dao.HighlightDataAccess markerDao;
     private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess imagesDao;
     public static String currentUri="default";
-    private java.util.List<MyVisionWordModel> savedRects=new ArrayList<>();
+    public static java.util.List<MyVisionWordModel> savedRects=new ArrayList<>();
     private ArrayList<String> colorArray;
     private GridView gridView;
     private  AlertDialog alertDialog;
     private Integer recentHighlight=null;
 
 
-    class MyVisionWordModel extends VisionWordModel{
-        String color;
-        String note;
+    public class MyVisionWordModel extends VisionWordModel{
+        public String color;
+        public String note;
 
         public MyVisionWordModel(Rect rect, String text, String color,String note) {
             super(rect, text);
@@ -95,6 +95,8 @@ public class MainActivity extends AppCompatActivity{
 
 
     }
+
+
 
     @Override
     protected void onCreate(android.os.Bundle savedInstanceState) {
@@ -106,45 +108,43 @@ public class MainActivity extends AppCompatActivity{
 
         //Toast.makeText(getApplicationContext(),Wiki.getTextExtract("Stack Overflow"),Toast.LENGTH_LONG).show();
 
+        try {
 
 
-        saveNoteTV=findViewById(R.id.save_note);
-        saveNoteTV.setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
+            saveNoteTV = findViewById(R.id.save_note);
+            saveNoteTV.setOnClickListener(new android.view.View.OnClickListener() {
+                @Override
+                public void onClick(android.view.View view) {
 
 
-                EditText et=findViewById(R.id.et);
-                String notes=et.getText().toString().trim();
-                if(notes.isEmpty()){
-                    Toast.makeText(getApplicationContext(),"Please enter note",Toast.LENGTH_LONG).show();
+                    EditText et = findViewById(R.id.et);
+                    String notes = et.getText().toString().trim();
+                    if (notes.isEmpty()) {
+                        Toast.makeText(getApplicationContext(), "Please enter note", Toast.LENGTH_LONG).show();
+                    } else {
+                        ivImage.saveNote(notes);
+                        //ToDo:Addtoastinsavenotefunction
+                        Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_LONG).show();
+
+                    }
                 }
-                else {
-                    ivImage.saveNote(notes);
-                    //ToDo:Addtoastinsavenotefunction
-                    Toast.makeText(getApplicationContext(),"Saved",Toast.LENGTH_LONG).show();
+            });
 
-                }
-            }
-        });
-
-        gridView=getLayoutInflater().inflate(R.layout.grid,null,false).findViewById(R.id.grid);
-        alertDialog=new AlertDialog.Builder(MainActivity.this)
-                .setView(gridView)
-                .create();
+            gridView = getLayoutInflater().inflate(R.layout.grid, null, false).findViewById(R.id.grid);
+            alertDialog = new AlertDialog.Builder(MainActivity.this)
+                    .setView(gridView)
+                    .create();
 
 
+            colorArray = new ArrayList<>();
+            colorArray.add("#f6e58d");
+
+            db = androidx.room.Room.databaseBuilder(getApplicationContext(),
+                    com.technikh.imagetextgrabber.room.MyDatabase.class, DBNAME).build();
 
 
-        colorArray = new ArrayList<>();
-        colorArray.add("#f6e58d");
-
-        db= androidx.room.Room.databaseBuilder(getApplicationContext(),
-                com.technikh.imagetextgrabber.room.MyDatabase.class, DBNAME).build();
-
-
-        markerDao=db.getHighlightsDao();
-        imagesDao=db.getImagesDao();
+            markerDao = db.getHighlightsDao();
+            imagesDao = db.getImagesDao();
 
 
 
@@ -158,159 +158,161 @@ public class MainActivity extends AppCompatActivity{
 
         /*Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);*/
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+            mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
-        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
 
-        MultiSelectSpinnerWidget mySpin = (MultiSelectSpinnerWidget)findViewById(R.id.spinner_options);
-        imageViewSettingsModel = new ImageViewSettingsModel();
+            MultiSelectSpinnerWidget mySpin = (MultiSelectSpinnerWidget) findViewById(R.id.spinner_options);
+            imageViewSettingsModel = new ImageViewSettingsModel();
 
-        mySpin.setItems(imageViewSettingsModel.getAllItems());
+            mySpin.setItems(imageViewSettingsModel.getAllItems());
 
-        String savedString = sharedPref.getString(PREF_SPINNER_USER_SETTINGS, imageViewSettingsModel.getDefaultItemsString());
-        String[] items = savedString.split(",");
-        int[] savedList = new int[items.length];
-        for (int i = 0; i < items.length; i++) {
-            savedList[i] = Integer.parseInt(items[i]);
-        }
-        mySpin.setSelection(savedList);
-        mySpin.refreshSpinner();
-        imageViewSettingsModel.setSelectedItems(mySpin.getSelectedIndicies());
-        mySpin.setOnMultiChoiceClickListener(new DialogInterface.OnMultiChoiceClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                java.util.List<Integer> list = mySpin.getSelectedIndicies();
-                String delimitedString = TextUtils.join(",", list);
-                SharedPreferences.Editor editor = sharedPref.edit();
-                editor.putString(PREF_SPINNER_USER_SETTINGS, delimitedString);
-                editor.commit();
-
-                imageViewSettingsModel.setSelectedItems(mySpin.getSelectedIndicies());
-                ivImage.initOptions(imageViewSettingsModel);
-
-                android.os.Bundle bundle = new android.os.Bundle();
-                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, delimitedString);
-                mFirebaseAnalytics.logEvent("SPINNER_SETTINGS_CHANGE", bundle);
+            String savedString = sharedPref.getString(PREF_SPINNER_USER_SETTINGS, imageViewSettingsModel.getDefaultItemsString());
+            String[] items = savedString.split(",");
+            int[] savedList = new int[items.length];
+            for (int i = 0; i < items.length; i++) {
+                savedList[i] = Integer.parseInt(items[i]);
             }
-        });
+            mySpin.setSelection(savedList);
+            mySpin.refreshSpinner();
+            imageViewSettingsModel.setSelectedItems(mySpin.getSelectedIndicies());
+            mySpin.setOnMultiChoiceClickListener(new DialogInterface.OnMultiChoiceClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                    java.util.List<Integer> list = mySpin.getSelectedIndicies();
+                    String delimitedString = TextUtils.join(",", list);
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putString(PREF_SPINNER_USER_SETTINGS, delimitedString);
+                    editor.commit();
 
-        ivImage = findViewById(R.id.ivImage);
+                    imageViewSettingsModel.setSelectedItems(mySpin.getSelectedIndicies());
+                    ivImage.initOptions(imageViewSettingsModel);
 
-
-        imageParentLayout = findViewById(R.id.rlParentWrapper);
-        et_image_text = findViewById(R.id.et_image_text);
-        mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-        mLayout.setAnchorPoint(0.7f);
-
-        // Get intent, action and MIME type
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        String type = intent.getType();
-        boolean loadDefaultImage = true;
-
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
-            if (type.startsWith("image/")) {
-                Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                if (imageUri != null) {
-                    com.bumptech.glide.Glide.with(MainActivity.this)
-                            .load(imageUri)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                            .into(ivImage);
-                    loadDefaultImage = false;
+                    android.os.Bundle bundle = new android.os.Bundle();
+                    bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, delimitedString);
+                    mFirebaseAnalytics.logEvent("SPINNER_SETTINGS_CHANGE", bundle);
                 }
-            }else if (type.startsWith("application/pdf")) {
-                Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                android.util.Log.d(TAG, "onCreate: pdfUri "+pdfUri);
-                ivImage.setVisibility(android.view.View.GONE);
+            });
 
-                android.os.Bundle args = new android.os.Bundle();
-                args.putString("uri", pdfUri.toString());
-                startActivity(new Intent(MainActivity.this,PdfRendererBasicFragment.class)
-                        .putExtra("bundle",args)
-                );
-            }
-        }else if (Intent.ACTION_VIEW.equals(action) && type != null) {
-            android.util.Log.d(TAG, "onCreate: type "+type);
-            android.os.Bundle bundle = intent.getExtras();
-            android.util.Log.d(TAG, "onCreate: intent.getData() "+intent.getData());
-            if (bundle != null) {
-                for (String key : bundle.keySet()) {
-                    Object value = bundle.get(key);
-                    android.util.Log.d(TAG, String.format("%s %s (%s)", key,
-                            value.toString(), value.getClass().getName()));
+            ivImage = findViewById(R.id.ivImage);
+
+
+            imageParentLayout = findViewById(R.id.rlParentWrapper);
+            et_image_text = findViewById(R.id.et_image_text);
+            mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+            mLayout.setAnchorPoint(0.7f);
+
+            // Get intent, action and MIME type
+            Intent intent = getIntent();
+            String action = intent.getAction();
+            String type = intent.getType();
+            boolean loadDefaultImage = true;
+
+            if (Intent.ACTION_SEND.equals(action) && type != null) {
+                if (type.startsWith("image/")) {
+                    Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                    if (imageUri != null) {
+                        com.bumptech.glide.Glide.with(MainActivity.this)
+                                .load(imageUri)
+                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                .into(ivImage);
+                        loadDefaultImage = false;
+                    }
+                } else if (type.startsWith("application/pdf")) {
+                    Uri pdfUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                    android.util.Log.d(TAG, "onCreate: pdfUri " + pdfUri);
+                    ivImage.setVisibility(android.view.View.GONE);
+
+                    android.os.Bundle args = new android.os.Bundle();
+                    args.putString("uri", pdfUri.toString());
+                    startActivity(new Intent(MainActivity.this, PdfRendererBasicFragment.class)
+                            .putExtra("bundle", args)
+                    );
+                }
+            } else if (Intent.ACTION_VIEW.equals(action) && type != null) {
+                android.util.Log.d(TAG, "onCreate: type " + type);
+                android.os.Bundle bundle = intent.getExtras();
+                android.util.Log.d(TAG, "onCreate: intent.getData() " + intent.getData());
+                if (bundle != null) {
+                    for (String key : bundle.keySet()) {
+                        Object value = bundle.get(key);
+                        android.util.Log.d(TAG, String.format("%s %s (%s)", key,
+                                value.toString(), value.getClass().getName()));
+                    }
+                }
+                if (type.startsWith("image/")) {
+                    Uri imageUri = (Uri) intent.getData();
+                    if (imageUri != null) {
+                        com.bumptech.glide.Glide.with(MainActivity.this)
+                                .load(imageUri)
+                                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                                .into(ivImage);
+                        loadDefaultImage = false;
+                    }
+                } else if (type.startsWith("application/pdf")) {
+                    Uri pdfUri = (Uri) intent.getData();
+                    android.util.Log.d(TAG, "onCreate: pdfUri " + pdfUri);
+                    ivImage.setVisibility(android.view.View.GONE);
+
+                    android.os.Bundle args = new android.os.Bundle();
+                    args.putString("uri", pdfUri.toString());
+                    startActivity(new Intent(MainActivity.this, PdfRendererBasicFragment.class)
+                            .putExtra("bundle", args)
+                    );
+
+
                 }
             }
-            if (type.startsWith("image/")) {
-                Uri imageUri = (Uri) intent.getData();
-                if (imageUri != null) {
-                    com.bumptech.glide.Glide.with(MainActivity.this)
-                            .load(imageUri)
-                            .diskCacheStrategy(DiskCacheStrategy.ALL)
-                            .into(ivImage);
-                    loadDefaultImage = false;
-                }
+            if (loadDefaultImage) {
+                com.bumptech.glide.Glide.with(MainActivity.this)
+                        .load(Uri.parse("file:///android_asset/Example.png"))
+                        .listener(new RequestListener<android.graphics.drawable.Drawable>() {
+                            @Override
+                            public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, DataSource dataSource, boolean isFirstResource) {
+
+                                showSavedHighlights(resource);
+                                return false;
+                            }
+                        })
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .into(ivImage);
             }
-            else if (type.startsWith("application/pdf")) {
-                Uri pdfUri = (Uri) intent.getData();
-                android.util.Log.d(TAG, "onCreate: pdfUri "+pdfUri);
-                ivImage.setVisibility(android.view.View.GONE);
-
-                android.os.Bundle args = new android.os.Bundle();
-                args.putString("uri", pdfUri.toString());
-                startActivity(new Intent(MainActivity.this,PdfRendererBasicFragment.class)
-                        .putExtra("bundle",args)
-                );
+            initImageView();
 
 
-            }
-        }
-        if(loadDefaultImage) {
-            com.bumptech.glide.Glide.with(MainActivity.this)
-                    .load(Uri.parse("file:///android_asset/Example.png"))
-                    .listener(new RequestListener<android.graphics.drawable.Drawable>() {
-                        @Override
-                        public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
-                            return false;
-                        }
-
-                        @Override
-                        public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, DataSource dataSource, boolean isFirstResource) {
-
-                            showSavedHighlights(resource);
-                            return false;
-                        }
-                    })
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .into(ivImage);
-        }
-        initImageView();
-
-
-
-        com.google.android.material.floatingactionbutton.FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                pickImage();
+            com.google.android.material.floatingactionbutton.FloatingActionButton fab = findViewById(R.id.fab);
+            fab.setOnClickListener(new android.view.View.OnClickListener() {
+                @Override
+                public void onClick(android.view.View view) {
+                    pickImage();
                 /*Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();*/
-            }
-        });
-
-        com.google.android.material.floatingactionbutton.FloatingActionButton fabPdf = findViewById(R.id.fabPdf);
-        fabPdf.setOnClickListener(new android.view.View.OnClickListener() {
-            @Override
-            public void onClick(android.view.View view) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    pickPdf();
-                }else{
-                    android.os.Bundle bundle = new android.os.Bundle();
-                    mFirebaseAnalytics.logEvent("DEVICE_NO_SUPPORT_PDF", bundle);
-                    Snackbar.make(view, "Your device version doesn't support our PDF opening library!", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
                 }
-            }
-        });
+            });
+
+            com.google.android.material.floatingactionbutton.FloatingActionButton fabPdf = findViewById(R.id.fabPdf);
+            fabPdf.setOnClickListener(new android.view.View.OnClickListener() {
+                @Override
+                public void onClick(android.view.View view) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        pickPdf();
+                    } else {
+                        android.os.Bundle bundle = new android.os.Bundle();
+                        mFirebaseAnalytics.logEvent("DEVICE_NO_SUPPORT_PDF", bundle);
+                        Snackbar.make(view, "Your device version doesn't support our PDF opening library!", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    }
+                }
+            });
+        }
+        catch (Exception e){
+            Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
+        }
     }
 
 

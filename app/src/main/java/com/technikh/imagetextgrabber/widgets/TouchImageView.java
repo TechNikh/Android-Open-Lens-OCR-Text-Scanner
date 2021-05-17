@@ -54,6 +54,8 @@ import java.util.stream.Collectors;
 
 import androidx.appcompat.widget.AppCompatImageView;
 
+import static com.technikh.imagetextgrabber.activities.MainActivity.savedRects;
+
 public class TouchImageView extends AppCompatImageView {
 
     private com.technikh.imagetextgrabber.room.dao.ImagesDataAccess dao;
@@ -1376,6 +1378,56 @@ public class TouchImageView extends AppCompatImageView {
                 //Log.d(TAG, "qaz selectWordOnTouch: getLayoutParams "+mivStartCursor.getLayoutParams().toString());
 
                 // Toggle
+
+                if(visionTextRectanglesSimplified.contains(visionWordModel)) {
+                    //check if visonwordmodel has note and color
+                    //if it has note display note
+                    //if it has color highlight appropriate color button with remove drawable
+                    for(MainActivity.MyVisionWordModel vwm:savedRects){
+                        if(visionWordModel.equals((VisionWordModel)vwm)){
+                            try {
+                                if(vwm.note!=null) {
+                                    ((MainActivity) mContext).et_image_text.setText(vwm.note);
+                                }
+                                if(vwm.color!=null) {
+                                    if(!vwm.color.equals("#00000000")){
+                                        if(!vwm.color.equals("")){
+                                            List<ImageView> ivs=new ArrayList(Arrays.asList((ImageView)((MainActivity) mContext).findViewById(R.id.f),
+                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.highlight),
+                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.add_highlight),
+                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.delete_highlight)));
+                                            for(ImageView iv:ivs){
+                                                iv.setImageDrawable(null);
+                                                if(iv.getTag().equals(vwm.color)){
+                                                    iv.setImageDrawable(getResources().getDrawable(R.drawable.ic_clear));
+                                                }
+
+                                            }
+                                            //invalidate();
+
+
+
+
+                                        }
+
+
+                                    }
+
+                                }
+
+                            }
+                            catch (Exception e){
+
+                            }
+                        }
+
+                    }
+
+
+
+                }
+
+
                 if(selectedVisionTextRectanglesSimplified.contains(visionWordModel)){
 
                     Toast.makeText(mContext, " removed "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
@@ -1398,11 +1450,10 @@ public class TouchImageView extends AppCompatImageView {
                 }else {
                     Toast.makeText(mContext, " Added "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
 
-                    // Add - Draw Red
+                    //Add - Draw Red
                     //selectedVisionTextRectangles.add(rect);
-                   // selectedVisionText.add(visionWordModel.mtext);
-                selectedVisionTextRectanglesSimplified.add(visionWordModel);
-
+                    //selectedVisionText.add(visionWordModel.mtext);
+                    selectedVisionTextRectanglesSimplified.add(visionWordModel);
 
                     // Initialize a new Paint instance to draw the Rectangle
                     Paint paint = new Paint();
