@@ -6,7 +6,9 @@ package com.technikh.imagetextgrabber.models;
  * When a modified version is used to provide a service over a network, the complete source code of the modified version must be made available.
  */
 
+import android.content.Context;
 import android.graphics.Rect;
+import android.widget.Toast;
 
 public class VisionWordModel {
     public String mtext;
@@ -41,5 +43,14 @@ public class VisionWordModel {
 
     public int getHeight() {
         return this.mrect.height();
+    }
+
+    public boolean equals(Context context, VisionWordModel vm){
+
+        boolean b=(getLeft()==vm.getLeft() && getRight()==vm.getRight() && getBottom()==vm.getBottom()
+                && getTop()==vm.getTop());
+
+        
+        return (b);
     }
 }
