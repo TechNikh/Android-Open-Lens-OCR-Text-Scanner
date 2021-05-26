@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity{
     private ArrayList<String> colorArray;
     private GridView gridView;
     private  AlertDialog alertDialog;
-    private Integer recentHighlight=null;
+    public Integer recentHighlight=null;
 
 
     public class MyVisionWordModel extends VisionWordModel{
@@ -108,7 +108,8 @@ public class MainActivity extends AppCompatActivity{
 
         //Toast.makeText(getApplicationContext(),Wiki.getTextExtract("Stack Overflow"),Toast.LENGTH_LONG).show();
 
-        try {
+        try
+        {
 
 
             saveNoteTV = findViewById(R.id.save_note);
@@ -124,7 +125,7 @@ public class MainActivity extends AppCompatActivity{
                     } else {
                         ivImage.saveNote(notes);
                         //ToDo:Addtoastinsavenotefunction
-                        Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), "Note Saved", Toast.LENGTH_LONG).show();
 
                     }
                 }
@@ -312,7 +313,13 @@ public class MainActivity extends AppCompatActivity{
         }
         catch (Exception e){
             Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
+
         }
+        catch (Throwable e){
+            Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
+
+        }
+
     }
 
 
@@ -449,13 +456,9 @@ public class MainActivity extends AppCompatActivity{
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            if(visionWordModel.note.isEmpty()) {
-                                canvas.drawRect(visionWordModel.mrect, paint);
-                            }
-                            else{
+                            canvas.drawRect(visionWordModel.mrect, paint);
 
-                            }
-                            if(finalI ==savedRects.size()){
+                            if(finalI ==savedRects.size()-1){
                                 ivImage.invalidate();
                             }
                         }
@@ -472,6 +475,9 @@ public class MainActivity extends AppCompatActivity{
 
     public void highlightSelected(View v){
         if(((ImageView)v).getDrawable()!=null){
+
+
+
             //remove highlight and x
             recentHighlight=v.getId();
             ImageView iv=findViewById(recentHighlight);

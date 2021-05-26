@@ -62,7 +62,7 @@ public class TouchImageView extends AppCompatImageView {
 
     public void highlight(final String s){
 
-        try {
+        {
             dao = MainActivity.db.getImagesDao();
 
             String sCopy=s;
@@ -76,14 +76,7 @@ public class TouchImageView extends AppCompatImageView {
             paint.setColor(Color.parseColor(sCopy));
             paint.setAntiAlias(true);
 
-            //canvas.drawBitmap(originalBitmap, 0, 0, paint);
-            //canvas.drawText("Testing...", 10, 10, paint);
 
-
-        /*if(longPressMode){
-            originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
-        }else {*/
-            //}
             final Bitmap originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
 
             Canvas canvas = new Canvas(originalBitmap);
@@ -142,8 +135,6 @@ public class TouchImageView extends AppCompatImageView {
 
             }
             this.setImageBitmap(originalBitmap);
-        }catch (Exception e){
-            Toast.makeText(getContext(),e.toString(),Toast.LENGTH_LONG).show();
         }
     }
 
@@ -151,15 +142,6 @@ public class TouchImageView extends AppCompatImageView {
 
         try {
             dao = MainActivity.db.getImagesDao();
-
-            final Bitmap originalBitmap;
-        /*if(longPressMode){
-            originalBitmap = unChangedOriginalBitmap.copy(unChangedOriginalBitmap.getConfig(), true);
-        }else {*/
-            originalBitmap = ((BitmapDrawable) TouchImageView.super.getDrawable()).getBitmap();
-            //}
-            Canvas canvas = new Canvas(originalBitmap);
-
 
             if(selectedVisionTextRectanglesSimplified.isEmpty()){
                 Toast.makeText(getContext().getApplicationContext(),"Please select text",Toast.LENGTH_LONG).show();
@@ -181,6 +163,7 @@ public class TouchImageView extends AppCompatImageView {
                                     MainActivity.currentUri
                             );
                             if(images.isEmpty()){
+
                                 dao.insert(new Images(visionWordModel.mrect.left,
                                         visionWordModel.mrect.top,
                                         visionWordModel.mrect.right,
@@ -193,10 +176,17 @@ public class TouchImageView extends AppCompatImageView {
                             }
                             else {
 
+
                                 try {
                                     Images images1 = images.get(0);
                                     images1.note = note;
                                     dao.insert(images1);
+                                    ((MainActivity)mContext).runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+
+                                        }
+                                    });
                                 }
                                 catch (Error e){
                                     Toast.makeText(getContext().getApplicationContext(),e.toString(),Toast.LENGTH_LONG)
@@ -1277,13 +1267,15 @@ public class TouchImageView extends AppCompatImageView {
         textSelectionInProgress = false;
     }
 
+
+
     private void selectWordOnTouch(int touchX, int touchY, boolean longPressMode) {
-        final String[] color = new String[1];
-        final String[] note = new String[1];
+        List<ImageView> ivs=new ArrayList(Arrays.asList((ImageView)((MainActivity) mContext).findViewById(R.id.f),
+                (ImageView)((MainActivity) mContext).findViewById(R.id.highlight),
+                (ImageView)((MainActivity) mContext).findViewById(R.id.add_highlight),
+                (ImageView)((MainActivity) mContext).findViewById(R.id.delete_highlight)));
+
         try {
-
-
-
 
 
             if(selectedVisionTextRectanglesSimplified.size()==1) {
@@ -1306,8 +1298,7 @@ public class TouchImageView extends AppCompatImageView {
                                     MainActivity.currentUri
                             );
 
-                            color[0] =image.get(0).color;
-                            note[0] =image.get(0).note;
+
 
 
 
@@ -1319,10 +1310,6 @@ public class TouchImageView extends AppCompatImageView {
 
                 }
             }
-
-        }catch (Exception e){
-            Toast.makeText(mContext,e.toString(),Toast.LENGTH_LONG).show();
-        }
 
 
         boolean foundWord = false;
@@ -1379,58 +1366,16 @@ public class TouchImageView extends AppCompatImageView {
 
                 // Toggle
 
-                if(visionTextRectanglesSimplified.contains(visionWordModel)) {
-                    //check if visonwordmodel has note and color
-                    //if it has note display note
-                    //if it has color highlight appropriate color button with remove drawable
-                    for(MainActivity.MyVisionWordModel vwm:savedRects){
-                        if(visionWordModel.equals((VisionWordModel)vwm)){
-                            try {
-                                if(vwm.note!=null) {
-                                    ((MainActivity) mContext).et_image_text.setText(vwm.note);
-                                }
-                                if(vwm.color!=null) {
-                                    if(!vwm.color.equals("#00000000")){
-                                        if(!vwm.color.equals("")){
-                                            List<ImageView> ivs=new ArrayList(Arrays.asList((ImageView)((MainActivity) mContext).findViewById(R.id.f),
-                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.highlight),
-                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.add_highlight),
-                                                    (ImageView)((MainActivity) mContext).findViewById(R.id.delete_highlight)));
-                                            for(ImageView iv:ivs){
-                                                iv.setImageDrawable(null);
-                                                if(iv.getTag().equals(vwm.color)){
-                                                    iv.setImageDrawable(getResources().getDrawable(R.drawable.ic_clear));
-                                                }
-
-                                            }
-                                            //invalidate();
-
-
-
-
-                                        }
-
-
-                                    }
-
-                                }
-
-                            }
-                            catch (Exception e){
-
-                            }
-                        }
-
-                    }
-
-
-
-                }
 
 
                 if(selectedVisionTextRectanglesSimplified.contains(visionWordModel)){
 
                     Toast.makeText(mContext, " removed "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
+
+                    for(ImageView iv:ivs) {
+                        iv.setImageDrawable(null);
+                    }
+                    ((EditText)((MainActivity) mContext).findViewById(R.id.et)).setText("");
 
                     // Remove - draw Yellow
                     //int pos = selectedVisionTextRectangles.indexOf(rect);
@@ -1449,6 +1394,62 @@ public class TouchImageView extends AppCompatImageView {
                     canvas.drawRect(rect, paint);
                 }else {
                     Toast.makeText(mContext, " Added "+visionWordModel.mtext , Toast.LENGTH_SHORT).show();
+
+
+                    for(ImageView iv:ivs) {
+                        iv.setImageDrawable(null);
+                    }
+                    ((EditText)((MainActivity) mContext).findViewById(R.id.et)).setText("");
+
+                    if(visionTextRectanglesSimplified.contains(visionWordModel)) {
+                        //check if visonwordmodel has note and color
+                        //if it has note display note
+                        //if it has color highlight appropriate color button with remove drawable
+                        for(MainActivity.MyVisionWordModel vwm:savedRects){
+                            if(visionWordModel.equals(mContext,(VisionWordModel)vwm)){
+                                try {
+                                    if(vwm.color!=null) {
+                                        if(!vwm.color.equals("#00000000")){
+                                            if(!vwm.color.equals("")){
+                                                for(ImageView iv:ivs){
+                                                    iv.setImageDrawable(null);
+                                                    if(iv.getTag().equals(vwm.color.replaceFirst("CC",""))){
+                                                        ((MainActivity)mContext).recentHighlight=iv.getId();
+                                                        iv.setImageDrawable(getResources().getDrawable(R.drawable.ic_clear));
+                                                    }
+
+                                                }
+                                                //invalidate();
+
+
+
+
+                                            }
+
+
+                                        }
+
+                                    }
+
+
+                                    if(vwm.note!=null) {
+                                        ((EditText)((MainActivity) mContext).findViewById(R.id.et)).setText(vwm.note);
+                                    }
+
+
+                                }
+                                catch (Exception e){
+                                    Toast.makeText(mContext,e.toString()
+                                            ,Toast.LENGTH_LONG).show();
+                                }
+                            }
+
+                        }
+
+
+
+                    }
+
 
                     //Add - Draw Red
                     //selectedVisionTextRectangles.add(rect);
@@ -1559,6 +1560,17 @@ public class TouchImageView extends AppCompatImageView {
 
 
 
+
+
+        }catch (Exception e){
+            Toast.makeText(mContext,e.toString(),Toast.LENGTH_LONG).show();
+        }
+        catch (Error e){
+            Toast.makeText(mContext,e.toString(),Toast.LENGTH_LONG).show();
+        }
+        catch (Throwable e){
+            Toast.makeText(mContext,e.toString(),Toast.LENGTH_LONG).show();
+        }
     }
 
     private void paintCursors(Canvas canvas){
